@@ -1,0 +1,8 @@
+bin/
+obj/
+out/
+.vs/
+*.user
+mod/BepInEx/plugins/MoonXrStarter/*.dll
+release/
+install-log.txt
