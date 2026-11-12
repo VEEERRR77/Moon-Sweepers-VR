@@ -1,5 +1,9 @@
 # Moon Sweepers VR
 
+![Sweeping the Moon with a toothbrush in VR](media/gameplay.gif)
+
+*[Watch the full clip with sound](media/gameplay.mp4)*
+
 Play **Moon Sweepers** (Steam) in PC VR with head tracking and motion controls.
 
 - Stereo 3D with full head tracking (look and lean)
