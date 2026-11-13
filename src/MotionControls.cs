@@ -85,6 +85,7 @@ namespace MoonXrStarter
                 }
 
                 MenuFix.Install(h);
+                MapFix.Install(h);
 
                 // Hide the brush reticle while sweeping (only its drawing is skipped).
                 var draw = brush != null ? AccessTools.Method(brush, "DrawBrushReticle") : null;
@@ -190,6 +191,17 @@ namespace MoonXrStarter
                     if (l2.sqrMagnitude > _lStick.sqrMagnitude) _lStick = l2;
                     if (r2.sqrMagnitude > _rStick.sqrMagnitude) _rStick = r2;
                     _lTrigger = Mathf.Max(_lTrigger, lt2); _rTrigger = Mathf.Max(_rTrigger, rt2);
+                }
+                // Right thumb on the thumb rest: the left stick becomes the D-pad (like Quest games).
+                if (Plugin.ThumbRestDpad.Value && XrPadSource.ThumbRest)
+                {
+                    var d = _lStick;
+                    if (d.sqrMagnitude > 0.25f)
+                    {
+                        if (Mathf.Abs(d.y) >= Mathf.Abs(d.x)) buttons |= d.y > 0f ? 1u << 0 : 1u << 1;
+                        else buttons |= d.x < 0f ? 1u << 2 : 1u << 3;
+                    }
+                    _lStick = Vector2.zero;
                 }
                 // Both grips held: sticks adjust heights instead of moving you.
                 //   right stick up/down = your view height, left stick up/down = tool height.

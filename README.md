@@ -9,11 +9,13 @@ Play **Moon Sweepers** (Steam) in PC VR with head tracking and motion controls.
 - Stereo 3D with full head tracking (look and lean)
 - **Quest / Touch motion controllers:** sweep where your right hand points, the tool is held in your hand, and you point at items and machines to use them
 - **Laser pointer** from the right hand when you're not sweeping, with adjustable colour and brightness
+- **Moon map with the laser:** point at the map to move its cursor and press A to select; the station teleport buttons work too. The laser turns bright yellow on the map and switches itself on while the map is open
 - **Wrist HUD:** dust/inventory, money and notices sit on your left wrist; the tool belt stays at the bottom of your view and the compass at the top
 - Menus float in front of you (main and pause menus further back); the field manual and the new-hire contract display properly
 - HUD can be hidden completely; the screen shading, vignette, motion blur and brush reticle are removed for comfort
 - Works anywhere on the Moon, including the far side
 - Xbox / PlayStation controllers also work, at the same time
+- **Thumb-rest D-pad:** rest your right thumb on the thumb rest and the left stick works as the D-pad
 - In-game recenter and height adjustment
 
 Built on [UUVR](https://github.com/Raicuparta/uuvr) and [BepInEx](https://github.com/BepInEx/BepInEx), plus a custom plugin (this repo) that makes them work on the game's Unity 6 engine.
@@ -64,6 +66,7 @@ Then: **start SteamVR first**, then launch Moon Sweepers from Steam. The first l
 |---|---|
 | Point right hand | Aim the tool, highlight items and machines (laser shows where) |
 | Left stick | Move |
+| Right thumb on the thumb rest + left stick | D-pad |
 | Right stick | Turn and look up / down |
 | Triggers | LT / RT (right trigger sweeps) |
 | Grips | LB / RB |
@@ -78,6 +81,8 @@ Then: **start SteamVR first**, then launch Moon Sweepers from Steam. The first l
 | Both grips + click left stick | Hide / show the HUD |
 
 On the tool upgrade / supply wall screen the left stick steps through items.
+
+On the **moon map**, point the laser at the map or a teleport station and press **A** to select.
 
 **Xbox / PlayStation controller**
 
@@ -101,11 +106,13 @@ Keyboard: F9 recenter, F11 / F10 view height.
 | `[Head Tracking]` | Height Offset, Tool Height Offset | View and tool height (also adjustable in game) |
 | `[Motion Controls]` | Enabled, Hand Interaction | Motion controls on/off; point-to-use on/off |
 | `[Motion Controls]` | Laser Pointer, Laser Colour, Laser Brightness, Laser Length | Laser options |
+| `[Motion Controls]` | Thumb Rest D-pad | Left stick becomes the D-pad while your right thumb is on the thumb rest |
 | `[Motion Controls]` | Hide Reticle | Hide the brush reticle (cleaning still works) |
 | `[Hand HUD]` | Hand, Width, Height Above Hand | Wrist HUD on `Left`, `Right` or `Off`, its size and height |
 | `[VR UI]` | Distance, Width, Height Offset | Menu panel placement |
 | `[VR UI]` | Main Menu Distance | How far back the main and pause menus sit |
 | `[VR UI]` | Compass Size / Raise, Tool Belt Size / Lower | Size and position of the compass and tool belt |
+| `[VR UI]` | Map Width, Teleport Panel Size | Moon map size; optionally show the teleport list as its own bigger panel |
 | `[VR UI]` | Hide HUD | Hide the HUD (also toggled in game) |
 | `[VR UI]` | Field Manual Width, Field Manual Zoom Out, Field Manual Face On | Field manual panel |
 | `[Comfort]` | Disable Motion Blur, Disable Vignette | Comfort tweaks |

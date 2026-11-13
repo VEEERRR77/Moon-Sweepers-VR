@@ -75,6 +75,9 @@ namespace MoonXrStarter
                     // Only UUVR's extra copy of an image camera is touched (switched off); the game's own
                     // image cameras are left alone (changing them crashed the game).
                     if (!uuvrChildOfImageCam) continue;
+                    // The moon map's camera worked fine with UUVR's copy left on; switching it off
+                    // showed the globe from the inside, so leave that one alone.
+                    if (c.transform.parent.parent.name.IndexOf("Map", StringComparison.OrdinalIgnoreCase) >= 0) continue;
                     if (_fixedCams.Add(c.Pointer))
                         Plugin.L.LogInfo($"Comfort: switching off extra VR camera under '{c.transform.parent.parent.name}'");
                     if (c.enabled) c.enabled = false;

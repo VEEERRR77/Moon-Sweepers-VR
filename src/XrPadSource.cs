@@ -76,6 +76,7 @@ namespace MoonXrStarter
             _lt = Handle("/actions/Xbox/in/LT"); _rt = Handle("/actions/Xbox/in/RT");
             _ls = Handle("/actions/Xbox/in/StickLeft"); _rs = Handle("/actions/Xbox/in/StickRight");
             _lsc = Handle("/actions/Xbox/in/StickLeftClick"); _rsc = Handle("/actions/Xbox/in/StickRightClick");
+            _rest = Handle("/actions/Xbox/in/DUp");   // bound to "right thumb rest touched" in our binding file
             if (_set == 0) throw new Exception("SteamVR action set not available");
 
             _active = (byte*)Marshal.AllocHGlobal(32);
@@ -86,6 +87,11 @@ namespace MoonXrStarter
             _ready = true;
             Plugin.L.LogMessage("Motion: reading Quest controllers from SteamVR");
         }
+
+        private static ulong _rest;
+        /// <summary>True while the right thumb is resting on the right controller's thumb rest.</summary>
+        internal static bool ThumbRest;
+        private static bool _loggedRest, _loggedRestBound, _loggedRestUnbound;
 
         private static bool _anyActive;
         private static bool Digital(ulong h)
@@ -133,6 +139,12 @@ namespace MoonXrStarter
                 if (Digital(_rb)) buttons |= 1u << 11;
                 if (Digital(_lsc)) buttons |= 1u << 8;
                 if (Digital(_rsc)) buttons |= 1u << 9;
+                bool before = _anyActive; _anyActive = false;
+                ThumbRest = Digital(_rest);
+                bool restBound = _anyActive; _anyActive |= before;
+                if (restBound && !_loggedRestBound) { _loggedRestBound = true; Plugin.L.LogInfo("Motion: thumb rest is bound in SteamVR"); }
+                if (ThumbRest && !_loggedRest) { _loggedRest = true; Plugin.L.LogInfo("Motion: right thumb rest touched - left stick is now the D-pad"); }
+                if (!restBound && !_loggedRestUnbound && _frames == 600) { _loggedRestUnbound = true; Plugin.L.LogWarning("Motion: thumb rest is NOT bound in SteamVR (new binding file not loaded yet?)"); }
                 ls = Analog(_ls); rs = Analog(_rs);
                 lt = Analog(_lt).x; rt = Analog(_rt).x;
 

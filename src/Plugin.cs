@@ -29,7 +29,8 @@ namespace MoonXrStarter
         internal static BepInEx.Configuration.ConfigEntry<float> MainMenuDistance;
         internal static BepInEx.Configuration.ConfigEntry<float> ManualMargin;
         internal static BepInEx.Configuration.ConfigEntry<float> CompassScale, CompassRaise, ToolbarScale, ToolbarLower;
-        internal static BepInEx.Configuration.ConfigEntry<bool> HideHud;
+        internal static BepInEx.Configuration.ConfigEntry<bool> HideHud, ThumbRestDpad;
+        internal static BepInEx.Configuration.ConfigEntry<float> MapWidth, TeleportScale;
         internal static BepInEx.Configuration.ConfigEntry<string> HudScreens;
         internal static BepInEx.Configuration.ConfigEntry<string> HandHud;
         internal static BepInEx.Configuration.ConfigEntry<string> HandHudCanvases;
@@ -71,9 +72,20 @@ namespace MoonXrStarter
             ManualMargin = Config.Bind("VR UI", "Field Manual Zoom Out", 0.85f, "How much space to leave around the field manual binder (1 = edge to edge, higher = smaller binder).");
             if (Mathf.Approximately(ManualMargin.Value, 1.15f) || Mathf.Approximately(ManualMargin.Value, 1.03f)) ManualMargin.Value = 0.85f;   // old defaults
             CompassScale = Config.Bind("VR UI", "Compass Size", 0.8f, "Size of the compass / scanner at the top (1 = normal).");
-            CompassRaise = Config.Bind("VR UI", "Compass Raise", 0.25f, "Moves the compass up (+) or down (-), in metres.");
+            CompassRaise = Config.Bind("VR UI", "Compass Raise", -0.2f, "Moves the compass up (+) or down (-), in metres. 0 = the game's normal spot at the top of your view.");
             ToolbarScale = Config.Bind("VR UI", "Tool Belt Size", 0.7f, "Size of the tool belt at the bottom (1 = normal).");
-            ToolbarLower = Config.Bind("VR UI", "Tool Belt Lower", 0.25f, "Moves the tool belt down (+) or up (-), in metres.");
+            ToolbarLower = Config.Bind("VR UI", "Tool Belt Lower", 0.2f, "Moves the tool belt down (+) or up (-), in metres. 0 = the game's normal spot at the bottom of your view.");
+            var hudLayoutVer = Config.Bind("VR UI", "HUD Layout Version", 0, "Internal: used to update old HUD position defaults. Leave alone.");
+            if (hudLayoutVer.Value < 2)
+            {
+                CompassRaise.Value = -0.2f; ToolbarLower.Value = 0.2f;   // both 20 cm lower than the game's spot
+                hudLayoutVer.Value = 2;
+            }
+            MapWidth = Config.Bind("VR UI", "Map Width", 2.0f, "Width of the moon map panel, in metres.");
+            if (Mathf.Approximately(MapWidth.Value, 1.4f) || Mathf.Approximately(MapWidth.Value, 1.7f)) MapWidth.Value = 2.0f;   // old defaults
+            TeleportScale = Config.Bind("VR UI", "Teleport Panel Size", 0f, "0 = the map's teleport list stays inside the map (normal). Above 0: shown as its own panel to the right of the map, this many times its normal size.");
+            if (Mathf.Approximately(TeleportScale.Value, 1.6f)) TeleportScale.Value = 0f;   // old default
+            ThumbRestDpad = Config.Bind("Motion Controls", "Thumb Rest D-pad", true, "While your right thumb rests on the right controller's thumb rest, the left stick works as the D-pad.");
             HideHud = Config.Bind("VR UI", "Hide HUD", false, "Hide the in-game HUD (compass, tool belt, wrist display). Toggle in game with both grips + click the left stick (gamepad: LB + RB + click the left stick).");
             HudScreens = Config.Bind("VR UI", "HUD Screens", "Region scanner HUD, Equipment HUD - five slots, Save indicator HUD, Money popups", "Which of the game's screens count as the HUD for Hide HUD.");
             HandHud = Config.Bind("Hand HUD", "Hand", "Left", "Show the in-game HUD (tool slots, money etc.) on a hand instead of in front of you: Left, Right or Off.");

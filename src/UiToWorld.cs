@@ -36,6 +36,29 @@ namespace MoonXrStarter
             return name != null && _hudNames.Contains(name);
         }
 
+        // A shrunk screen pulls its contents in towards the middle of your view. Slide it back so
+        // its contents sit exactly where they would at full size (compass stays at the top).
+        private static void KeepAtFullSizeSpot(Transform canvas, float k)
+        {
+            if (k <= 0.01f || Mathf.Approximately(k, 1f)) return;
+            try
+            {
+                Vector3 sum = Vector3.zero; int n = 0;
+                for (int i = 0; i < canvas.childCount; i++)
+                {
+                    var c = canvas.GetChild(i);
+                    if (c == null || !c.gameObject.activeSelf) continue;
+                    var rt = c.TryCast<RectTransform>();
+                    if (rt == null) continue;
+                    sum += rt.TransformPoint(rt.rect.center); n++;
+                }
+                if (n == 0) return;
+                Vector3 d = sum / n - canvas.position;          // contents offset at the shrunk size
+                canvas.position += d * ((1f - k) / k);          // = offset it would have at full size
+            }
+            catch { }
+        }
+
         internal static void ToggleHud()
         {
             Plugin.HideHud.Value = !Plugin.HideHud.Value;
@@ -290,6 +313,7 @@ namespace MoonXrStarter
                 if (t.Name == null) { try { t.Name = t.Canvas.gameObject.name; } catch { t.Name = ""; } }
                 Vector3 upv = _smoothRot * Vector3.up;
                 if (t.Name == "How to play") w = Plugin.ManualWidth.Value;
+                else if (t.Name == MapFix.CanvasName) w = Plugin.MapWidth.Value;
                 else if (t.Name == "Region scanner HUD")
                 {
                     w *= Plugin.CompassScale.Value;
@@ -307,6 +331,7 @@ namespace MoonXrStarter
                 float s = w * t.BaseScale;
                 tr.SetPositionAndRotation(_smoothPos + extra - fwd * (t.Rank * 0.002f), _smoothRot);
                 tr.localScale = new Vector3(s, s, s);
+                if (t.Name == "Region scanner HUD" && w > 0f) KeepAtFullSizeSpot(tr, Plugin.CompassScale.Value);
             }
         }
     }

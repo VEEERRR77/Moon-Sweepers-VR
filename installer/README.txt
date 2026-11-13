@@ -56,6 +56,7 @@ Controls (Quest / Touch motion controllers)
 - Point your RIGHT hand at items / machines to highlight and use them
   (a faint laser shows where you're pointing when you're not sweeping)
 - Left stick ............................. move
+- Right thumb on the THUMB REST + left stick  D-pad
 - Right stick ............................ turn and look up / down
 - Triggers ............................... LT / RT (right trigger sweeps)
 - Grips .................................. LB / RB
@@ -72,6 +73,9 @@ Controls (Quest / Touch motion controllers)
 - Hold BOTH grips, click LEFT stick ...... hide / show the HUD
 - Tool upgrade / supply wall screen: left stick steps through the
   items, A selects, grips switch tabs.
+- Moon map: point the laser at the map or a teleport station and
+  press A to select. The laser turns bright yellow and switches on by
+  itself while the map is open.
 
 The HUD: tool belt at the bottom of your view, compass at the top,
 dust / money / notices on your LEFT wrist.
@@ -97,7 +101,8 @@ Settings live in BepInEx\config\claude.moonxrstarter.cfg in the game
 folder (edit with the game closed): menu panel distance /
 size / height, wrist HUD (Hand = Left, Right or Off; Width; Height Above
 Hand), compass / tool belt size and position (Compass Size, Compass Raise,
-Tool Belt Size, Tool Belt Lower), Hide HUD, Main Menu Distance, field
+Tool Belt Size, Tool Belt Lower), Hide HUD, Main Menu Distance, Map Width,
+Teleport Panel Size, Thumb Rest D-pad, field
 manual size, laser colour / brightness, and the height offsets above.
 
 If something goes wrong

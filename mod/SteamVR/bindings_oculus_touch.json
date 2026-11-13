@@ -159,6 +159,15 @@
                },
                "mode": "button",
                "path": "/user/hand/right/input/grip"
+            },
+            {
+               "inputs": {
+                  "touch": {
+                     "output": "/actions/xbox/in/dup"
+                  }
+               },
+               "mode": "button",
+               "path": "/user/hand/right/input/thumbrest"
             }
          ]
       }

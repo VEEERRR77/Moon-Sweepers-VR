@@ -221,6 +221,7 @@ namespace MoonXrStarter
                 var main = Camera.main;
                 if (main == null) return;
                 UiToWorld.Place(main);
+                MapFix.Layout();
                 if (!_loggedCanvasHook) { _loggedCanvasHook = true; Plugin.L.LogInfo("UI: pre-canvas placement active"); }
             }
             catch { }
@@ -380,6 +381,7 @@ namespace MoonXrStarter
                     {
                         _lastUiFrame = f;
                         UiToWorld.Place(main); // final pose of the game's own camera for this frame
+                        MapFix.Layout();
                         if (!_loggedUiCam) { _loggedUiCam = true; Plugin.L.LogInfo("UI: render-time placement active"); }
                     }
                 }

@@ -53,6 +53,11 @@ namespace MoonXrStarter
         internal static void Toggle()
         {
             Plugin.LaserPointer.Value = !Plugin.LaserPointer.Value;
+            if (Plugin.LaserPointer.Value)
+            {
+                _failed = false; _errCount = 0;   // give it a fresh start if it had hit an error
+                if (Plugin.LaserBrightness.Value < 0.03f) Plugin.LaserBrightness.Value = 0.03f;   // don't come back invisible
+            }
             Plugin.L.LogInfo("Laser: " + (Plugin.LaserPointer.Value ? "on" : "off"));
         }
 
@@ -60,11 +65,14 @@ namespace MoonXrStarter
         {
             float b = Mathf.Clamp01(Plugin.LaserBrightness.Value);
             string colour = Plugin.LaserColour.Value;
+            bool map = MapFix.Open;
+            if (map) { b = 1f; colour = "Yellow"; }   // on the map: solid bright yellow
             if (b == _appliedBrightness && colour == _appliedColour) return;
             _appliedBrightness = b; _appliedColour = colour;
+            if (_dot != null) _dot.transform.localScale = Vector3.one * (map ? DotSize * 1.8f : DotSize);
             // Dim the laser by making it see-through rather than darker: a dark colour just looks
             // black in the headset, whereas a faint transparent line keeps its colour.
-            var c = Colours[ColourIndex()];
+            var c = map ? Colours[0] : Colours[ColourIndex()];
             float alpha = Mathf.Clamp(Mathf.Sqrt(b) * 1.2f, 0.08f, 1f);
             float k = Mathf.Lerp(0.6f, 1f, b);
             var tint = new Color(c.r * k, c.g * k, c.b * k, alpha);
@@ -73,7 +81,8 @@ namespace MoonXrStarter
         }
 
         private static GameObject _beam, _dot;
-        private static bool _failed, _loggedReady;
+        private static bool _failed, _loggedReady, _loggedErr;
+        private static int _errCount;
 
         public static void Tick()
         {
@@ -98,6 +107,10 @@ namespace MoonXrStarter
                     end = info.point;
                     hit = true;
                 }
+                if (MapFix.TryClip(p, dir, out float md) && md < len)
+                {
+                    len = Mathf.Max(0.01f, md - 0.01f); end = p + dir * len; hit = true;   // stop just in front of the map panel
+                }
 
                 var bt = _beam.transform;
                 bt.SetPositionAndRotation(p + dir * (len * 0.5f), Quaternion.LookRotation(dir));
@@ -107,9 +120,12 @@ namespace MoonXrStarter
             }
             catch (Exception e)
             {
-                _failed = true;
-                Plugin.L.LogError("Laser: switched off after an error: " + e);
+                // Don't give up for good (e.g. a scene change destroyed the beam): rebuild it
+                // next frame, and only log the error once.
+                if (!_loggedErr) { _loggedErr = true; Plugin.L.LogError("Laser: error, rebuilding: " + e); }
                 try { Show(false, false); } catch { }
+                _beam = null; _dot = null;
+                if (++_errCount > 300) _failed = true;   // persistent fault: stop until toggled back on
             }
         }
 
@@ -161,6 +177,7 @@ namespace MoonXrStarter
             _beam = Make(PrimitiveType.Cube, src);
             _dot = Make(PrimitiveType.Sphere, src);
             _dot.transform.localScale = Vector3.one * DotSize;
+            _appliedBrightness = -1f;   // re-apply colour and dot size to the new objects
             if (!_loggedReady)
             {
                 _loggedReady = true;
@@ -229,6 +246,8 @@ namespace MoonXrStarter
                 mr.receiveShadows = false;
                 if (src != null) mr.sharedMaterial = new Material(src);
                 else mr.sharedMaterial = new Material(mr.sharedMaterial);
+                mr.sharedMaterial.renderQueue = 4000;   // draw after the floating menus, so the beam stays visible on them
+                mr.sortingOrder = 32767;                 // menus sort by their canvas order first, so outrank them too
                 if (shape == PrimitiveType.Cube) _beamMat = mr.sharedMaterial; else _dotMat = mr.sharedMaterial;
                 _appliedBrightness = -1f;   // re-tint the new materials
             }
