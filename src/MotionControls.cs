@@ -86,6 +86,7 @@ namespace MoonXrStarter
 
                 MenuFix.Install(h);
                 MapFix.Install(h);
+                WallFix.Install(h);
 
                 // Hide the brush reticle while sweeping (only its drawing is skipped).
                 var draw = brush != null ? AccessTools.Method(brush, "DrawBrushReticle") : null;

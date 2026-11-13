@@ -10,6 +10,8 @@ Play **Moon Sweepers** (Steam) in PC VR with head tracking and motion controls.
 - **Quest / Touch motion controllers:** sweep where your right hand points, the tool is held in your hand, and you point at items and machines to use them
 - **Laser pointer** from the right hand when you're not sweeping, with adjustable colour and brightness
 - **Moon map with the laser:** point at the map to move its cursor and press A to select; the station teleport buttons work too. The laser turns bright yellow on the map and switches itself on while the map is open
+- **Supply wall and upgrade matrix with the laser:** point at an item or upgrade to select it, press A to use it
+- **Full-view loading screens:** loading, teleport and studio intro screens fill your view instead of floating in a window
 - **Wrist HUD:** dust/inventory, money and notices sit on your left wrist; the tool belt stays at the bottom of your view and the compass at the top
 - Menus float in front of you (main and pause menus further back); the field manual and the new-hire contract display properly
 - HUD can be hidden completely; the screen shading, vignette, motion blur and brush reticle are removed for comfort
@@ -82,7 +84,7 @@ Then: **start SteamVR first**, then launch Moon Sweepers from Steam. The first l
 
 On the tool upgrade / supply wall screen the left stick steps through items.
 
-On the **moon map**, point the laser at the map or a teleport station and press **A** to select.
+On the **moon map**, **supply wall** and **upgrade matrix**, point the laser at what you want and press **A** to select it. The laser switches on, turns bright yellow and stops on the screen while these are open.
 
 **Xbox / PlayStation controller**
 
@@ -113,6 +115,8 @@ Keyboard: F9 recenter, F11 / F10 view height.
 | `[VR UI]` | Main Menu Distance | How far back the main and pause menus sit |
 | `[VR UI]` | Compass Size / Raise, Tool Belt Size / Lower | Size and position of the compass and tool belt |
 | `[VR UI]` | Map Width, Teleport Panel Size | Moon map size; optionally show the teleport list as its own bigger panel |
+| `[VR UI]` | Tools Screen Width | Size of the supply wall and upgrade matrix screens |
+| `[VR UI]` | Full View Loading Screens, Loading Logo Size, Studio Intro Lower | Full-view loading screens, their logo size, and the intro's height |
 | `[VR UI]` | Hide HUD | Hide the HUD (also toggled in game) |
 | `[VR UI]` | Field Manual Width, Field Manual Zoom Out, Field Manual Face On | Field manual panel |
 | `[Comfort]` | Disable Motion Blur, Disable Vignette | Comfort tweaks |

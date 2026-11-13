@@ -29,8 +29,8 @@ namespace MoonXrStarter
         internal static BepInEx.Configuration.ConfigEntry<float> MainMenuDistance;
         internal static BepInEx.Configuration.ConfigEntry<float> ManualMargin;
         internal static BepInEx.Configuration.ConfigEntry<float> CompassScale, CompassRaise, ToolbarScale, ToolbarLower;
-        internal static BepInEx.Configuration.ConfigEntry<bool> HideHud, ThumbRestDpad;
-        internal static BepInEx.Configuration.ConfigEntry<float> MapWidth, TeleportScale;
+        internal static BepInEx.Configuration.ConfigEntry<bool> HideHud, ThumbRestDpad, FullViewLoading;
+        internal static BepInEx.Configuration.ConfigEntry<float> MapWidth, TeleportScale, ToolsScreenWidth, LoadingLogoSize, IntroLower;
         internal static BepInEx.Configuration.ConfigEntry<string> HudScreens;
         internal static BepInEx.Configuration.ConfigEntry<string> HandHud;
         internal static BepInEx.Configuration.ConfigEntry<string> HandHudCanvases;
@@ -83,6 +83,10 @@ namespace MoonXrStarter
             }
             MapWidth = Config.Bind("VR UI", "Map Width", 2.0f, "Width of the moon map panel, in metres.");
             if (Mathf.Approximately(MapWidth.Value, 1.4f) || Mathf.Approximately(MapWidth.Value, 1.7f)) MapWidth.Value = 2.0f;   // old defaults
+            FullViewLoading = Config.Bind("VR UI", "Full View Loading Screens", true, "Loading, teleport and studio intro screens fill your whole view instead of floating in a window.");
+            LoadingLogoSize = Config.Bind("VR UI", "Loading Logo Size", 0.25f, "Size of the logo and text on full-view loading screens (1 = stretched with the background).");
+            IntroLower = Config.Bind("VR UI", "Studio Intro Lower", 0.35f, "Moves the studio intro (developer's name) down (+) or up (-) in your view, in metres.");
+            ToolsScreenWidth = Config.Bind("VR UI", "Tools Screen Width", 1.9f, "Width of the supply wall / tools screen and the upgrade matrix, in metres.");
             TeleportScale = Config.Bind("VR UI", "Teleport Panel Size", 0f, "0 = the map's teleport list stays inside the map (normal). Above 0: shown as its own panel to the right of the map, this many times its normal size.");
             if (Mathf.Approximately(TeleportScale.Value, 1.6f)) TeleportScale.Value = 0f;   // old default
             ThumbRestDpad = Config.Bind("Motion Controls", "Thumb Rest D-pad", true, "While your right thumb rests on the right controller's thumb rest, the left stick works as the D-pad.");

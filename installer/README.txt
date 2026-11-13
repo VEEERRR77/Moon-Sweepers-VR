@@ -73,9 +73,9 @@ Controls (Quest / Touch motion controllers)
 - Hold BOTH grips, click LEFT stick ...... hide / show the HUD
 - Tool upgrade / supply wall screen: left stick steps through the
   items, A selects, grips switch tabs.
-- Moon map: point the laser at the map or a teleport station and
-  press A to select. The laser turns bright yellow and switches on by
-  itself while the map is open.
+- Moon map, supply wall and upgrade matrix: point the laser at what
+  you want and press A to select it. The laser turns bright yellow
+  and switches on by itself while these screens are open.
 
 The HUD: tool belt at the bottom of your view, compass at the top,
 dust / money / notices on your LEFT wrist.
@@ -102,7 +102,8 @@ folder (edit with the game closed): menu panel distance /
 size / height, wrist HUD (Hand = Left, Right or Off; Width; Height Above
 Hand), compass / tool belt size and position (Compass Size, Compass Raise,
 Tool Belt Size, Tool Belt Lower), Hide HUD, Main Menu Distance, Map Width,
-Teleport Panel Size, Thumb Rest D-pad, field
+Teleport Panel Size, Tools Screen Width, Full View Loading Screens,
+Loading Logo Size, Studio Intro Lower, Thumb Rest D-pad, field
 manual size, laser colour / brightness, and the height offsets above.
 
 If something goes wrong

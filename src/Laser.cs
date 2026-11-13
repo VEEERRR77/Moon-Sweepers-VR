@@ -50,6 +50,22 @@ namespace MoonXrStarter
             Plugin.L.LogInfo($"Laser: brightness {steps[next] * 100f:F0}%");
         }
 
+        private static bool _menuForced, _menuWas;
+        /// <summary>Laser on while a laser-driven menu (map, tools screen) is open, then back to how it was.</summary>
+        internal static void MenuForce(bool menu)
+        {
+            if (menu && !_menuForced)
+            {
+                _menuForced = true; _menuWas = Plugin.LaserPointer.Value;
+                if (!_menuWas) Plugin.LaserPointer.Value = true;
+            }
+            else if (!menu && _menuForced)
+            {
+                _menuForced = false;
+                if (Plugin.LaserPointer.Value != _menuWas) Plugin.LaserPointer.Value = _menuWas;
+            }
+        }
+
         internal static void Toggle()
         {
             Plugin.LaserPointer.Value = !Plugin.LaserPointer.Value;
@@ -65,7 +81,7 @@ namespace MoonXrStarter
         {
             float b = Mathf.Clamp01(Plugin.LaserBrightness.Value);
             string colour = Plugin.LaserColour.Value;
-            bool map = MapFix.Open;
+            bool map = MapFix.Open || WallFix.Open;
             if (map) { b = 1f; colour = "Yellow"; }   // on the map: solid bright yellow
             if (b == _appliedBrightness && colour == _appliedColour) return;
             _appliedBrightness = b; _appliedColour = colour;
@@ -107,7 +123,7 @@ namespace MoonXrStarter
                     end = info.point;
                     hit = true;
                 }
-                if (MapFix.TryClip(p, dir, out float md) && md < len)
+                if ((MapFix.TryClip(p, dir, out float md) || WallFix.TryClip(p, dir, out md)) && md < len)
                 {
                     len = Mathf.Max(0.01f, md - 0.01f); end = p + dir * len; hit = true;   // stop just in front of the map panel
                 }

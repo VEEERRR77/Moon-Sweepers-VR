@@ -59,6 +59,30 @@ namespace MoonXrStarter
             catch { }
         }
 
+        // Full-view screens: the background fills your view, but the logo and text are shrunk back
+        // towards the middle so they aren't huge.
+        private static readonly Dictionary<IntPtr, (Vector3 pos, Vector3 scale)> _shrunk = new Dictionary<IntPtr, (Vector3, Vector3)>();
+        private static void ShrinkContent(Canvas c, float k)
+        {
+            try
+            {
+                var root = c.transform.TryCast<RectTransform>();
+                if (root == null) return;
+                Vector2 full = root.rect.size;
+                for (int i = 0; i < root.childCount; i++)
+                {
+                    var ch = root.GetChild(i).TryCast<RectTransform>();
+                    if (ch == null) continue;
+                    var sz = ch.rect.size;
+                    if (sz.x >= full.x * 0.9f && sz.y >= full.y * 0.9f) continue;   // background: keep full size
+                    if (!_shrunk.TryGetValue(ch.Pointer, out var o)) { o = (ch.localPosition, ch.localScale); _shrunk[ch.Pointer] = o; }
+                    ch.localPosition = o.pos * k;
+                    ch.localScale = o.scale * k;
+                }
+            }
+            catch { }
+        }
+
         internal static void ToggleHud()
         {
             Plugin.HideHud.Value = !Plugin.HideHud.Value;
@@ -311,9 +335,37 @@ namespace MoonXrStarter
                 float w = width;
                 Vector3 extra = Vector3.zero;
                 if (t.Name == null) { try { t.Name = t.Canvas.gameObject.name; } catch { t.Name = ""; } }
+                // Loading screens fill your whole view: locked to your head, big enough to cover it.
+                if (Plugin.FullViewLoading.Value && (t.Name == "Loading screen canvas" || t.Name == "Teleport screen canvas" || t.Name == "Studio intro canvas"))
+                {
+                    // Before head tracking has started (the studio intro), the camera itself follows your head.
+                    if (!HeadTracking.TryGetHeadPose(out var headPos, out var headRot))
+                    {
+                        // Head tracking not running yet (studio intro): the headset view is the camera
+                        // plus the raw headset pose on top of it.
+                        var lr = UnityEngine.XR.InputTracking.GetLocalRotation(UnityEngine.XR.XRNode.CenterEye);
+                        var lp = UnityEngine.XR.InputTracking.GetLocalPosition(UnityEngine.XR.XRNode.CenterEye);
+                        bool ok = !(lr.x == 0f && lr.y == 0f && lr.z == 0f && lr.w == 0f);
+                        headRot = ok ? ct.rotation * lr : ct.rotation;
+                        headPos = ok ? ct.position + ct.rotation * lp : ct.position;
+                    }
+                    const float d = 2f;
+                    float fs = d * 7f * t.BaseScale;   // ~14 m wide at 2 m: past the edges of the headset's view
+                    float down = t.Name == "Studio intro canvas" ? Plugin.IntroLower.Value : 0f;
+                    tr.SetPositionAndRotation(headPos + headRot * new Vector3(0f, -down, d), headRot);
+                    tr.localScale = new Vector3(fs, fs, fs);
+                    ShrinkContent(t.Canvas, Plugin.LoadingLogoSize.Value);
+                    continue;
+                }
                 Vector3 upv = _smoothRot * Vector3.up;
                 if (t.Name == "How to play") w = Plugin.ManualWidth.Value;
                 else if (t.Name == MapFix.CanvasName) w = Plugin.MapWidth.Value;
+                else if (t.Name == "Supply wall screen") w = Plugin.ToolsScreenWidth.Value;
+                else if (t.Name == "Upgrades")
+                {
+                    w = Plugin.ToolsScreenWidth.Value;
+                    extra = fwd * 0.5f;   // half a metre further back than the other menus
+                }
                 else if (t.Name == "Region scanner HUD")
                 {
                     w *= Plugin.CompassScale.Value;

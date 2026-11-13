@@ -23,22 +23,6 @@ namespace MoonXrStarter
         // if any of them was open this frame.
         private static int _openFrame = -100;
         internal static bool Open => Time.frameCount - _openFrame <= 2;
-        private static bool _laserForced, _laserWas;
-
-        // Laser on while the map is open, then back to how it was.
-        private static void LaserForMap(bool open)
-        {
-            if (open && !_laserForced)
-            {
-                _laserForced = true; _laserWas = Plugin.LaserPointer.Value;
-                if (!_laserWas) { Plugin.LaserPointer.Value = true; Plugin.L.LogInfo("Map: laser on for the map"); }
-            }
-            else if (!open && _laserForced)
-            {
-                _laserForced = false;
-                if (Plugin.LaserPointer.Value != _laserWas) Plugin.LaserPointer.Value = _laserWas;
-            }
-        }
         private static RectTransform _rt;
         private static bool _driving;
         // How the game's pointer maps onto the map panel: 0 = screen pixels, 1 = canvas units from the
@@ -117,7 +101,7 @@ namespace MoonXrStarter
         /// <summary>Called at render time, after the map panel is placed: moves the teleport panel.</summary>
         internal static void Layout()
         {
-            LaserForMap(Open);
+            Laser.MenuForce(Open || WallFix.Open);
             if (!Open) _rt = null;
             try
             {

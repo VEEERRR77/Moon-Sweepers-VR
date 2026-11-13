@@ -305,6 +305,16 @@ namespace MoonXrStarter
             return TrackingToWorld(p, rot, out wp, out _);
         }
 
+        /// <summary>Your head's pose in the game world (position and where you're looking).</summary>
+        internal static bool TryGetHeadPose(out Vector3 wp, out Quaternion wr)
+        {
+            wp = default; wr = Quaternion.identity;
+            var rot = InputTracking.GetLocalRotation(XRNode.CenterEye);
+            if (rot.x == 0f && rot.y == 0f && rot.z == 0f && rot.w == 0f) return false;
+            var p = Plugin.PositionTracking.Value ? InputTracking.GetLocalPosition(XRNode.CenterEye) : _calibPos;
+            return TrackingToWorld(p, rot, out wp, out wr);
+        }
+
         private static bool GetHead(out Quaternion rot, out Vector3 pos)
         {
             rot = InputTracking.GetLocalRotation(XRNode.CenterEye);
