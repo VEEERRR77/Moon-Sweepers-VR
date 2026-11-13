@@ -29,7 +29,7 @@ namespace MoonXrStarter
         internal static BepInEx.Configuration.ConfigEntry<float> MainMenuDistance;
         internal static BepInEx.Configuration.ConfigEntry<float> ManualMargin;
         internal static BepInEx.Configuration.ConfigEntry<float> CompassScale, CompassRaise, ToolbarScale, ToolbarLower;
-        internal static BepInEx.Configuration.ConfigEntry<bool> HideHud, ThumbRestDpad, FullViewLoading;
+        internal static BepInEx.Configuration.ConfigEntry<bool> HideHud, ThumbRestDpad, FullViewLoading, BuildMenuLaser;
         internal static BepInEx.Configuration.ConfigEntry<float> MapWidth, TeleportScale, ToolsScreenWidth, LoadingLogoSize, IntroLower;
         internal static BepInEx.Configuration.ConfigEntry<string> HudScreens;
         internal static BepInEx.Configuration.ConfigEntry<string> HandHud;
@@ -86,6 +86,9 @@ namespace MoonXrStarter
             FullViewLoading = Config.Bind("VR UI", "Full View Loading Screens", true, "Loading, teleport and studio intro screens fill your whole view instead of floating in a window.");
             LoadingLogoSize = Config.Bind("VR UI", "Loading Logo Size", 0.25f, "Size of the logo and text on full-view loading screens (1 = stretched with the background).");
             IntroLower = Config.Bind("VR UI", "Studio Intro Lower", 0.35f, "Moves the studio intro (developer's name) down (+) or up (-) in your view, in metres.");
+            BuildMenuLaser = Config.Bind("Motion Controls", "Build Menu Laser", true, "Choose build menu cards with the laser + right trigger. Off: use the left stick to move and the right trigger (or A) to choose.");
+            var buildVer = Config.Bind("Motion Controls", "Build Menu Version", 0, "Internal: used to update old build menu defaults. Leave alone.");
+            if (buildVer.Value < 1) { BuildMenuLaser.Value = true; buildVer.Value = 1; }
             ToolsScreenWidth = Config.Bind("VR UI", "Tools Screen Width", 1.9f, "Width of the supply wall / tools screen and the upgrade matrix, in metres.");
             TeleportScale = Config.Bind("VR UI", "Teleport Panel Size", 0f, "0 = the map's teleport list stays inside the map (normal). Above 0: shown as its own panel to the right of the map, this many times its normal size.");
             if (Mathf.Approximately(TeleportScale.Value, 1.6f)) TeleportScale.Value = 0f;   // old default

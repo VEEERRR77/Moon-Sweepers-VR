@@ -81,7 +81,7 @@ namespace MoonXrStarter
         {
             float b = Mathf.Clamp01(Plugin.LaserBrightness.Value);
             string colour = Plugin.LaserColour.Value;
-            bool map = MapFix.Open || WallFix.Open;
+            bool map = MapFix.Open || WallFix.Open || (BuildFix.Open && Plugin.BuildMenuLaser.Value);
             if (map) { b = 1f; colour = "Yellow"; }   // on the map: solid bright yellow
             if (b == _appliedBrightness && colour == _appliedColour) return;
             _appliedBrightness = b; _appliedColour = colour;
@@ -123,7 +123,7 @@ namespace MoonXrStarter
                     end = info.point;
                     hit = true;
                 }
-                if ((MapFix.TryClip(p, dir, out float md) || WallFix.TryClip(p, dir, out md)) && md < len)
+                if ((MapFix.TryClip(p, dir, out float md) || WallFix.TryClip(p, dir, out md) || BuildFix.TryClip(p, dir, out md)) && md < len)
                 {
                     len = Mathf.Max(0.01f, md - 0.01f); end = p + dir * len; hit = true;   // stop just in front of the map panel
                 }

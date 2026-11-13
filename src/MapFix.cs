@@ -101,7 +101,7 @@ namespace MoonXrStarter
         /// <summary>Called at render time, after the map panel is placed: moves the teleport panel.</summary>
         internal static void Layout()
         {
-            Laser.MenuForce(Open || WallFix.Open);
+            Laser.MenuForce(Open || WallFix.Open || (BuildFix.Open && Plugin.BuildMenuLaser.Value));
             if (!Open) _rt = null;
             try
             {

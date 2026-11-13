@@ -87,6 +87,7 @@ namespace MoonXrStarter
                 MenuFix.Install(h);
                 MapFix.Install(h);
                 WallFix.Install(h);
+                BuildFix.Install(h);
 
                 // Hide the brush reticle while sweeping (only its drawing is skipped).
                 var draw = brush != null ? AccessTools.Method(brush, "DrawBrushReticle") : null;
@@ -192,6 +193,20 @@ namespace MoonXrStarter
                     if (l2.sqrMagnitude > _lStick.sqrMagnitude) _lStick = l2;
                     if (r2.sqrMagnitude > _rStick.sqrMagnitude) _rStick = r2;
                     _lTrigger = Mathf.Max(_lTrigger, lt2); _rTrigger = Mathf.Max(_rTrigger, rt2);
+                }
+                // Build menu: the right trigger chooses (with the laser: the card you point at;
+                // without: works as A on the highlighted card). Either way the game doesn't see it.
+                RawRightTrigger = _rTrigger;
+                if (BuildFix.Open)
+                {
+                    // laser mode: only while pointing at a card (the card under the laser is selected).
+                    bool inject = _rTrigger > 0.6f && (!Plugin.BuildMenuLaser.Value || BuildFix.Hovering);
+                    if (inject) buttons |= 1u << 6;
+                    bool held = _rTrigger > 0.6f;
+                    if (held && !_buildTrigHeld && _buildTrigLogs++ < 10)
+                        Plugin.L.LogInfo($"Build: right trigger in menu (pointing at a card {BuildFix.Hovering}, sent A {inject})");
+                    _buildTrigHeld = held;
+                    _rTrigger = 0f;
                 }
                 // Right thumb on the thumb rest: the left stick becomes the D-pad (like Quest games).
                 if (Plugin.ThumbRestDpad.Value && XrPadSource.ThumbRest)
@@ -431,6 +446,11 @@ namespace MoonXrStarter
         private static Vector3 _savedPos; private static Quaternion _savedRot;
 
         private static int _depth;
+
+        internal static float RawRightTrigger;
+        private static bool _buildTrigHeld; private static int _buildTrigLogs;
+        internal static void HandAimBegin() => BrushPre();
+        internal static void HandAimEnd() => BrushPost();
 
         private static void BrushPre()
         {

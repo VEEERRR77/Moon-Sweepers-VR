@@ -76,6 +76,9 @@ Controls (Quest / Touch motion controllers)
 - Moon map, supply wall and upgrade matrix: point the laser at what
   you want and press A to select it. The laser turns bright yellow
   and switches on by itself while these screens are open.
+- Build menu: point at a card and pull the RIGHT TRIGGER to choose it.
+  The piece then follows your right hand along the ground (conveyor
+  ends too); confirm as normal.
 
 The HUD: tool belt at the bottom of your view, compass at the top,
 dust / money / notices on your LEFT wrist.
