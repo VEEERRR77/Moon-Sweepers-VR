@@ -10,7 +10,9 @@ Play **Moon Sweepers** (Steam) in PC VR with head tracking and motion controls.
 - **Quest / Touch motion controllers:** sweep where your right hand points, the tool is held in your hand, and you point at items and machines to use them
 - **Laser pointer** from the right hand when you're not sweeping, with adjustable colour and brightness
 - **Wrist HUD:** dust/inventory, money and notices sit on your left wrist; the tool belt stays at the bottom of your view and the compass at the top
-- Menus float in front of you; the screen-space shading, vignette, motion blur and brush reticle are removed for comfort
+- Menus float in front of you (main and pause menus further back); the field manual and the new-hire contract display properly
+- HUD can be hidden completely; the screen shading, vignette, motion blur and brush reticle are removed for comfort
+- Works anywhere on the Moon, including the far side
 - Xbox / PlayStation controllers also work, at the same time
 - In-game recenter and height adjustment
 
@@ -73,6 +75,7 @@ Then: **start SteamVR first**, then launch Moon Sweepers from Steam. The first l
 | Both grips + right stick left / right | Laser colour (yellow, blue, red, green, white) |
 | Both grips + left stick left / right | Laser brightness |
 | Both grips + left stick up / down | Held-tool height (gamepad play) |
+| Both grips + click left stick | Hide / show the HUD |
 
 On the tool upgrade / supply wall screen the left stick steps through items.
 
@@ -85,6 +88,7 @@ On the tool upgrade / supply wall screen the left stick steps through items.
 | LB + RB + D-pad right / left | Tool height |
 | LB + RB + X | Laser on / off |
 | LB + RB + Y | Laser colour |
+| LB + RB + click left stick | Hide / show the HUD |
 
 Keyboard: F9 recenter, F11 / F10 view height.
 
@@ -100,6 +104,10 @@ Keyboard: F9 recenter, F11 / F10 view height.
 | `[Motion Controls]` | Hide Reticle | Hide the brush reticle (cleaning still works) |
 | `[Hand HUD]` | Hand, Width, Height Above Hand | Wrist HUD on `Left`, `Right` or `Off`, its size and height |
 | `[VR UI]` | Distance, Width, Height Offset | Menu panel placement |
+| `[VR UI]` | Main Menu Distance | How far back the main and pause menus sit |
+| `[VR UI]` | Compass Size / Raise, Tool Belt Size / Lower | Size and position of the compass and tool belt |
+| `[VR UI]` | Hide HUD | Hide the HUD (also toggled in game) |
+| `[VR UI]` | Field Manual Width, Field Manual Zoom Out, Field Manual Face On | Field manual panel |
 | `[Comfort]` | Disable Motion Blur, Disable Vignette | Comfort tweaks |
 
 ## Troubleshooting
@@ -135,7 +143,7 @@ files\mod\BepInEx\config\raicuparta.uuvr-legacy.cfg
 files\mod\SteamVR\bindings_oculus_touch.json
 ```
 
-Source files: `Plugin.cs` (settings, starts OpenVR), `HeadTracking.cs`, `UiToWorld.cs` (menus/HUD panels), `HudLayout.cs` (wrist HUD), `MotionControls.cs` + `XrPadSource.cs` + `VirtualPad.cs` (controllers), `Laser.cs`, `MenuFix.cs` (supply-wall navigation), `Comfort.cs` (blur/vignette).
+Source files: `Plugin.cs` (settings, starts OpenVR), `HeadTracking.cs`, `UiToWorld.cs` (menus/HUD panels), `HudLayout.cs` (wrist HUD), `MotionControls.cs` + `XrPadSource.cs` + `VirtualPad.cs` (controllers), `Laser.cs`, `MenuFix.cs` (supply-wall navigation), `Comfort.cs` (blur/vignette, image cameras), `ManualView.cs` (field manual framing), `ScreenProbe.cs` (diagnostics).
 
 `Install.bat` comes from `installer\`, `files\install.ps1` from `installer\install.ps1`, and `files\mod` from `mod\` plus the built DLL. If you update a dependency, update its URL and SHA-256 at the top of `install.ps1`.
 

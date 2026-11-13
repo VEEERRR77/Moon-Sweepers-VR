@@ -53,8 +53,43 @@ namespace MoonXrStarter
             }
         }
 
+        private static float _nextStageFix;
+        private static readonly System.Collections.Generic.HashSet<IntPtr> _fixedCams = new System.Collections.Generic.HashSet<IntPtr>();
+
+        // The field manual and contract are filmed by their own cameras into an image. In VR those
+        // cameras would otherwise be turned by your head, so the picture comes out at the wrong angle.
+        private static void FixStageCameras()
+        {
+            if (Time.unscaledTime < _nextStageFix) return;
+            _nextStageFix = Time.unscaledTime + 1f;
+            try
+            {
+                foreach (var o in Resources.FindObjectsOfTypeAll(Il2CppInterop.Runtime.Il2CppType.Of<Camera>()))
+                {
+                    var c = o.TryCast<Camera>();
+                    if (c == null || !c.gameObject.scene.IsValid()) continue;
+                    bool toImage = c.targetTexture != null;
+                    var parentCam = c.transform.parent != null && c.transform.parent.parent != null
+                        ? c.transform.parent.parent.GetComponent<Camera>() : null;
+                    bool uuvrChildOfImageCam = c.name == "VrChildCamera" && parentCam != null && parentCam.targetTexture != null;
+                    // Only UUVR's extra copy of an image camera is touched (switched off); the game's own
+                    // image cameras are left alone (changing them crashed the game).
+                    if (!uuvrChildOfImageCam) continue;
+                    if (_fixedCams.Add(c.Pointer))
+                        Plugin.L.LogInfo($"Comfort: switching off extra VR camera under '{c.transform.parent.parent.name}'");
+                    if (c.enabled) c.enabled = false;
+                }
+            }
+            catch (Exception e)
+            {
+                _nextStageFix = float.MaxValue;
+                Plugin.L.LogWarning("Comfort: image camera fix failed: " + (e.InnerException ?? e).Message);
+            }
+        }
+
         public static void Tick()
         {
+            if (XrStarter.Started) FixStageCameras();
             if (XrStarter.Started) KillVignette();
             if (_broken || !Plugin.DisableMotionBlur.Value || !XrStarter.Started) return;
             if (Time.unscaledTime < _next) return;

@@ -91,6 +91,10 @@ namespace MoonXrStarter
                 var shade = hud.shade;
                 if (Alive(shade)) shade.rectTransform.localScale = Vector3.zero;
 
+                // Tool belt size (it shrinks towards its own anchor at the bottom of the view).
+                var bar = hud.toolBar;
+                if (Alive(bar)) bar.localScale = Vector3.one * Mathf.Clamp(Plugin.ToolbarScale.Value, 0.3f, 2f);
+
                 if (wrist == null) { if (_moved.Count > 0) RestoreAll(); return; }
 
                 var items = new List<RectTransform>();

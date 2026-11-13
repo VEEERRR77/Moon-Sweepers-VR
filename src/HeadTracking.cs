@@ -88,7 +88,7 @@ namespace MoonXrStarter
                 try { if (c.GetComponent<Camera>() != null) continue; } catch { }
                 SavedChildren.Add(new SavedChild { T = c, LocalPos = c.localPosition });
                 var ls = root.lossyScale;
-                var dirLocal = root.InverseTransformDirection(Vector3.up * off);
+                var dirLocal = root.InverseTransformDirection(WorldUp(root.position) * off);
                 c.localPosition += new Vector3(dirLocal.x / Mathf.Max(ls.x, 1e-4f), dirLocal.y / Mathf.Max(ls.y, 1e-4f), dirLocal.z / Mathf.Max(ls.z, 1e-4f));
             }
         }
@@ -121,7 +121,7 @@ namespace MoonXrStarter
         {
             try
             {
-                bool recenter = false, up = false, down = false, toolUp = false, toolDown = false, laserToggle = false, laserColour = false;
+                bool recenter = false, up = false, down = false, toolUp = false, toolDown = false, laserToggle = false, laserColour = false, hudToggle = false;
                 var pad = UnityEngine.InputSystem.Gamepad.current;
                 if (pad != null)
                 {
@@ -138,6 +138,7 @@ namespace MoonXrStarter
                     // Hold LB + RB: X = laser on/off, Y = next laser colour.
                     laserToggle = bumpers && pad.buttonWest.isPressed;
                     laserColour = bumpers && pad.buttonNorth.isPressed;
+                    hudToggle = bumpers && pad.leftStickButton.isPressed && !pad.rightStickButton.isPressed;
                 }
                 var kb = UnityEngine.InputSystem.Keyboard.current;
                 if (kb != null)
@@ -156,6 +157,8 @@ namespace MoonXrStarter
                 if (laserToggle && !_laserToggleHeld) Laser.Toggle();
                 if (laserColour && !_laserColourHeld) Laser.CycleColour(1);
                 _laserToggleHeld = laserToggle; _laserColourHeld = laserColour;
+                if (hudToggle && !_hudToggleHeld) UiToWorld.ToggleHud();
+                _hudToggleHeld = hudToggle;
             }
             catch (Exception e)
             {
@@ -164,7 +167,7 @@ namespace MoonXrStarter
         }
 
         private bool _loggedControlsError;
-        private bool _toolUpHeld, _toolDownHeld, _laserToggleHeld, _laserColourHeld;
+        private bool _toolUpHeld, _toolDownHeld, _laserToggleHeld, _laserColourHeld, _hudToggleHeld;
 
         internal static void ChangeToolHeight(float delta)
         {
@@ -184,6 +187,7 @@ namespace MoonXrStarter
             HandleControls();
             MotionControls.Tick();
             Comfort.Tick();
+            ScreenProbe.Tick();
             // Only hook rendering once the game has fully booted (hooking during startup can crash it).
             if (!_registered && !_fallback && Time.unscaledTime >= _nextRegisterTry
                 && Time.frameCount > 300 && XrStarter.Started && Camera.main != null)
@@ -210,6 +214,7 @@ namespace MoonXrStarter
         private static void OnPreWillRenderCanvases()
         {
             Laser.Tick();   // after all game updates, so the beam lines up with this frame's aim
+            ManualView.Tick();
             try
             {
                 if (!Plugin.UiRenderTimePlacement.Value) return;
@@ -275,9 +280,18 @@ namespace MoonXrStarter
             if (main == null) return false;
             var bt = main.transform;
             var yawFix = Quaternion.Euler(0f, -_calibYaw, 0f);
-            wp = bt.position + bt.rotation * (yawFix * (p - _calibPos)) + Vector3.up * Plugin.HeadHeightOffset.Value;
+            wp = bt.position + bt.rotation * (yawFix * (p - _calibPos)) + WorldUp(bt.position) * Plugin.HeadHeightOffset.Value;
             wr = bt.rotation * (yawFix * r);
             return true;
+        }
+
+        /// <summary>
+        /// "Up" where you're standing. The Moon is a real sphere centred on the world origin, so on
+        /// the far side "up" points the other way; near the origin (menus, interiors) it's plain up.
+        /// </summary>
+        internal static Vector3 WorldUp(Vector3 pos)
+        {
+            return pos.sqrMagnitude > 500f * 500f ? pos.normalized : Vector3.up;
         }
 
         /// <summary>Where your eyes are in the game world right now.</summary>
@@ -320,7 +334,7 @@ namespace MoonXrStarter
                 var baseRot = tr.rotation;
                 var basePos = tr.position;
                 SavedPoses.Add(new Saved { TransformPtr = tr.Pointer, T = tr, Pos = basePos, Rot = baseRot });
-                tr.SetPositionAndRotation(basePos + baseRot * hp + Vector3.up * Plugin.HeadHeightOffset.Value, baseRot * hr);
+                tr.SetPositionAndRotation(basePos + baseRot * hp + WorldUp(basePos) * Plugin.HeadHeightOffset.Value, baseRot * hr);
                 OffsetTools(tr);
                 if (!_loggedFirst) { _loggedFirst = true; Plugin.L.LogInfo($"Head tracking: applying to camera '{cam.name}'"); }
                 if (!_loggedHierarchy && Time.unscaledTime > 30f)
@@ -352,6 +366,9 @@ namespace MoonXrStarter
         {
             if (cam == null || !Plugin.HeadTrackingEnabled.Value) return;
             if (!cam.stereoEnabled) return;
+            // Only the main view follows your head. Cameras that film into an image (the field
+            // manual, the contract clipboard) must keep their own fixed angle.
+            if (cam.targetTexture != null) return;
             // Place the UI from the camera's final (pre-head) pose for this frame, so it can't lag.
             try
             {

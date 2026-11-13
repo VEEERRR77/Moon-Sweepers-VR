@@ -18,6 +18,28 @@ namespace MoonXrStarter
             public float BaseScale;
             public int Rank;
             public bool OnHand;
+            public string Name;
+        }
+
+        private static string _hudRaw;
+        private static readonly HashSet<string> _hudNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        private static bool IsHudScreen(string name)
+        {
+            string raw = Plugin.HudScreens.Value ?? "";
+            if (raw != _hudRaw)
+            {
+                _hudRaw = raw;
+                _hudNames.Clear();
+                foreach (var part in raw.Split(',')) { var x = part.Trim(); if (x.Length > 0) _hudNames.Add(x); }
+            }
+            return name != null && _hudNames.Contains(name);
+        }
+
+        internal static void ToggleHud()
+        {
+            Plugin.HideHud.Value = !Plugin.HideHud.Value;
+            Plugin.L.LogInfo("HUD: " + (Plugin.HideHud.Value ? "hidden" : "shown"));
         }
 
         private static string _handRaw;
@@ -191,7 +213,13 @@ namespace MoonXrStarter
             float h = Plugin.UiHeightOffset.Value;
 
             // Target pose: in front of the game camera (before head tracking is applied).
-            Vector3 targetPos = ct.position + ct.rotation * new Vector3(0f, h, dist);
+            // Anchor the panel on your eyes (the camera plus your view-height offset), not on the
+            // game camera itself, so tilting the view with the right stick swings the HUD around you
+            // instead of sliding it towards and away from you.
+            // (Looking straight ahead the panel ends up exactly where it was before.)
+            float eyeOff = Plugin.HeadTrackingEnabled.Value ? Plugin.HeadHeightOffset.Value : 0f;
+            Vector3 eyeBase = ct.position + HeadTracking.WorldUp(ct.position) * eyeOff;
+            Vector3 targetPos = eyeBase + ct.rotation * new Vector3(0f, h - eyeOff, dist);
             Quaternion targetRot = ct.rotation;
 
             // Light smoothing to iron out the game's stepped camera motion.
@@ -225,7 +253,7 @@ namespace MoonXrStarter
                         && HeadTracking.TryGetHeadWorld(out var eye))
                     {
                         // "Up" as you see it (the game camera can be tilted by the right stick).
-                        var up = ct.rotation * Vector3.up;
+                        var up = HeadTracking.WorldUp(hp);
                         handPanel = hp + up * Plugin.HandHudHeight.Value;
                         var toPanel = handPanel - eye;
                         if (toPanel.sqrMagnitude > 0.0001f)
@@ -252,13 +280,32 @@ namespace MoonXrStarter
                 if (tr.parent != null) tr.SetParent(null, true);
                 if (t.OnHand && handOk)
                 {
-                    float hs = Plugin.HandHudWidth.Value * t.BaseScale;
+                    float hs = (Plugin.HideHud.Value ? 0f : Plugin.HandHudWidth.Value) * t.BaseScale;
                     tr.SetPositionAndRotation(handPanel - handFwd * (t.Rank * 0.0005f), handFacing);
                     tr.localScale = new Vector3(hs, hs, hs);
                     continue;
                 }
-                float s = width * t.BaseScale;
-                tr.SetPositionAndRotation(_smoothPos - fwd * (t.Rank * 0.002f), _smoothRot);
+                float w = width;
+                Vector3 extra = Vector3.zero;
+                if (t.Name == null) { try { t.Name = t.Canvas.gameObject.name; } catch { t.Name = ""; } }
+                Vector3 upv = _smoothRot * Vector3.up;
+                if (t.Name == "How to play") w = Plugin.ManualWidth.Value;
+                else if (t.Name == "Region scanner HUD")
+                {
+                    w *= Plugin.CompassScale.Value;
+                    extra = upv * Plugin.CompassRaise.Value;
+                }
+                else if (t.Name == "Equipment HUD - five slots")
+                    extra = -upv * Plugin.ToolbarLower.Value;
+                else if ((t.Name == "Main menu" || t.Name == "Pause menu") && dist > 0.1f)
+                {
+                    float md = Plugin.MainMenuDistance.Value;
+                    extra = fwd * (md - dist);
+                    // just moved back (same physical size, so it looks further away)
+                }
+                if (Plugin.HideHud.Value && IsHudScreen(t.Name)) w = 0f;   // hidden: shrink to nothing
+                float s = w * t.BaseScale;
+                tr.SetPositionAndRotation(_smoothPos + extra - fwd * (t.Rank * 0.002f), _smoothRot);
                 tr.localScale = new Vector3(s, s, s);
             }
         }

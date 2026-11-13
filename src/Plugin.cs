@@ -24,6 +24,13 @@ namespace MoonXrStarter
         internal static BepInEx.Configuration.ConfigEntry<float> ToolHeightOffset;
         internal static BepInEx.Configuration.ConfigEntry<float> UiWidth;
         internal static BepInEx.Configuration.ConfigEntry<float> UiHeightOffset;
+        internal static BepInEx.Configuration.ConfigEntry<float> ManualWidth;
+        internal static BepInEx.Configuration.ConfigEntry<bool> ManualFaceOn;
+        internal static BepInEx.Configuration.ConfigEntry<float> MainMenuDistance;
+        internal static BepInEx.Configuration.ConfigEntry<float> ManualMargin;
+        internal static BepInEx.Configuration.ConfigEntry<float> CompassScale, CompassRaise, ToolbarScale, ToolbarLower;
+        internal static BepInEx.Configuration.ConfigEntry<bool> HideHud;
+        internal static BepInEx.Configuration.ConfigEntry<string> HudScreens;
         internal static BepInEx.Configuration.ConfigEntry<string> HandHud;
         internal static BepInEx.Configuration.ConfigEntry<string> HandHudCanvases;
         internal static BepInEx.Configuration.ConfigEntry<float> HandHudWidth;
@@ -56,6 +63,19 @@ namespace MoonXrStarter
             UiDistance = Config.Bind("VR UI", "Distance", 1.5f, "How far in front of you the menu/HUD panel floats, in metres.");
             UiWidth = Config.Bind("VR UI", "Width", 2.4f, "Width of the menu/HUD panel, in metres.");
             UiHeightOffset = Config.Bind("VR UI", "Height Offset", 0f, "Moves the panel up (+) or down (-), in metres.");
+            ManualWidth = Config.Bind("VR UI", "Field Manual Width", 1.6f, "Width of the field manual panel, in metres.");
+            if (Mathf.Approximately(ManualWidth.Value, 1.3f) || Mathf.Approximately(ManualWidth.Value, 2.2f)) ManualWidth.Value = 1.6f;   // old defaults
+            ManualFaceOn = Config.Bind("VR UI", "Field Manual Face On", true, "Show the field manual binder face-on (straight at you) instead of lying on a desk.");
+            MainMenuDistance = Config.Bind("VR UI", "Main Menu Distance", 3.5f, "How far away the main menu floats, in metres.");
+            if (MainMenuDistance.Value < 3f) MainMenuDistance.Value = 3.5f;   // older, too-close defaults
+            ManualMargin = Config.Bind("VR UI", "Field Manual Zoom Out", 0.85f, "How much space to leave around the field manual binder (1 = edge to edge, higher = smaller binder).");
+            if (Mathf.Approximately(ManualMargin.Value, 1.15f) || Mathf.Approximately(ManualMargin.Value, 1.03f)) ManualMargin.Value = 0.85f;   // old defaults
+            CompassScale = Config.Bind("VR UI", "Compass Size", 0.8f, "Size of the compass / scanner at the top (1 = normal).");
+            CompassRaise = Config.Bind("VR UI", "Compass Raise", 0.25f, "Moves the compass up (+) or down (-), in metres.");
+            ToolbarScale = Config.Bind("VR UI", "Tool Belt Size", 0.7f, "Size of the tool belt at the bottom (1 = normal).");
+            ToolbarLower = Config.Bind("VR UI", "Tool Belt Lower", 0.25f, "Moves the tool belt down (+) or up (-), in metres.");
+            HideHud = Config.Bind("VR UI", "Hide HUD", false, "Hide the in-game HUD (compass, tool belt, wrist display). Toggle in game with both grips + click the left stick (gamepad: LB + RB + click the left stick).");
+            HudScreens = Config.Bind("VR UI", "HUD Screens", "Region scanner HUD, Equipment HUD - five slots, Save indicator HUD, Money popups", "Which of the game's screens count as the HUD for Hide HUD.");
             HandHud = Config.Bind("Hand HUD", "Hand", "Left", "Show the in-game HUD (tool slots, money etc.) on a hand instead of in front of you: Left, Right or Off.");
             HandHudCanvases = Config.Bind("Hand HUD", "Screens", "Save indicator HUD, Money popups", "Comma-separated names of the game's HUD screens to put on the hand. The first one also receives the dust panel, money and notices from the main HUD (the tool belt and compass stay in front of you).");
             if (HandHudCanvases.Value == "Equipment HUD - five slots, Region scanner HUD, Save indicator HUD, Money popups") HandHudCanvases.Value = "Save indicator HUD, Money popups";   // old default

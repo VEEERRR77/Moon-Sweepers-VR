@@ -20,7 +20,7 @@ namespace MoonXrStarter
         private static float _rTrigger, _lTrigger;
         private static Vector2 _rStick, _lStick;
         private static float _nextViewAdj, _nextToolAdj;
-        private static bool _recenterHeld, _laserToggleHeld;
+        private static bool _recenterHeld, _laserToggleHeld, _hudToggleHeld;
         private static float _nextColourAdj, _nextBrightAdj;
         internal static Vector3 HandPos; internal static Quaternion HandRot = Quaternion.identity; internal static int HandFrame = -1;
         private static bool _loggedRay, _loggedInput, _loggedErr, _loggedValues;
@@ -208,13 +208,18 @@ namespace MoonXrStarter
                     if (x && !_laserToggleHeld) Laser.Toggle();
                     _laserToggleHeld = x;
                     buttons &= ~(1u << 7);
+                    // ...left stick click hides / shows the HUD...
+                    bool lsc = (buttons & (1u << 8)) != 0;
+                    if (lsc && !_hudToggleHeld) UiToWorld.ToggleHud();
+                    _hudToggleHeld = lsc;
+                    buttons &= ~(1u << 8);
                     // ...and A recenters the view (kept away from the game so you don't jump).
                     bool a = (buttons & (1u << 6)) != 0;
                     if (a && !_recenterHeld) { HeadTracking.Recenter(); Plugin.L.LogInfo("Head tracking: recentered (grips + A)"); }
                     _recenterHeld = a;
                     buttons &= ~(1u << 6);
                 }
-                else { _recenterHeld = false; _laserToggleHeld = false; }
+                else { _recenterHeld = false; _laserToggleHeld = false; _hudToggleHeld = false; }
                 // Right stick up/down is passed to the game, so it looks up/down the same way
                 // left/right turns you.
                 _sentL = Dead(_lStick); _sentR = Dead(_rStick); _sentLT = _lTrigger < 0.05f ? 0f : _lTrigger; _sentRT = _rTrigger < 0.05f ? 0f : _rTrigger;
