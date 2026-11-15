@@ -89,6 +89,17 @@ namespace MoonXrStarter
                 WallFix.Install(h);
                 BuildFix.Install(h);
 
+                // The coffee mug is shown relative to the (screen-space) game camera, so in VR it
+                // floats away from you. Put it in the right hand instead, after the game positioned it.
+                var coffee = AccessTools.TypeByName("MoonCleaners.MoonCoffee");
+                var coffeeLate = coffee != null ? AccessTools.Method(coffee, "LateUpdate") : null;
+                if (coffeeLate != null)
+                {
+                    h.Patch(coffeeLate, postfix: new HarmonyMethod(typeof(MotionControls).GetMethod(nameof(CoffeePost), BindingFlags.Static | BindingFlags.NonPublic)));
+                    Plugin.L.LogMessage("Motion: patched MoonCoffee.LateUpdate (cup in hand)");
+                }
+                else Plugin.L.LogWarning("Motion: MoonCoffee.LateUpdate not found");
+
                 // Hide the brush reticle while sweeping (only its drawing is skipped).
                 var draw = brush != null ? AccessTools.Method(brush, "DrawBrushReticle") : null;
                 _hideReticle = brush != null ? AccessTools.Method(brush, "HideBrushReticle") : null;
@@ -485,6 +496,41 @@ namespace MoonXrStarter
             _depth = 0;
             try { if (_swapped != null) _swapped.SetPositionAndRotation(_savedPos, _savedRot); } catch { }
             _swapped = null;
+        }
+
+        // Coffee cup: keep the held mug in the right hand once the game has placed it for this frame.
+        private static PropertyInfo _coffeeView, _coffeeHolding;
+        private static bool _loggedCoffeeErr;
+
+        private static void CoffeePost(object __instance)
+        {
+            bool holding = false;
+            try
+            {
+                var t = __instance.GetType();
+                // Tracked even when the cup isn't moved for you: the laser hides while you hold coffee.
+                if (_coffeeHolding == null || _coffeeHolding.DeclaringType != t) _coffeeHolding = AccessTools.Property(t, "Holding");
+                holding = _coffeeHolding != null && _coffeeHolding.GetValue(__instance) is bool h && h;
+            }
+            catch { }
+            Laser.CoffeeHeld(holding);
+            if (!holding) return;
+            try
+            {
+                if (!Plugin.CoffeeCupInHand.Value || !Plugin.MotionControlsEnabled.Value) return;
+                var t = __instance.GetType();
+                if (_coffeeView == null || _coffeeView.DeclaringType != t) _coffeeView = AccessTools.Property(t, "view");
+                if (_coffeeView == null) return;
+                var view = _coffeeView.GetValue(__instance) as Transform;
+                if (view == null || !view.gameObject.activeSelf) return;
+                if (!TryGetHandPose(false, out var hp, out var hr)) return;
+                var offset = new Vector3(Plugin.CoffeeCupOffsetX.Value, Plugin.CoffeeCupOffsetY.Value, Plugin.CoffeeCupOffsetZ.Value);
+                view.SetPositionAndRotation(hp + hr * offset, hr * Quaternion.Euler(0f, 0f, 0f));
+            }
+            catch (Exception e)
+            {
+                if (!_loggedCoffeeErr) { _loggedCoffeeErr = true; Plugin.L.LogError("Motion: coffee cup error: " + (e.InnerException ?? e)); }
+            }
         }
 
     }

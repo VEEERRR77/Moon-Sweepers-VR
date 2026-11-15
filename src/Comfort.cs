@@ -94,6 +94,7 @@ namespace MoonXrStarter
         {
             if (XrStarter.Started) FixStageCameras();
             if (XrStarter.Started) KillVignette();
+            if (XrStarter.Started) PinkFix.Tick();
             if (_broken || !Plugin.DisableMotionBlur.Value || !XrStarter.Started) return;
             if (Time.unscaledTime < _next) return;
             _next = Time.unscaledTime + 2f;

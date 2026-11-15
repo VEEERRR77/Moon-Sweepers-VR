@@ -62,22 +62,75 @@ namespace MoonXrStarter
         // Full-view screens: the background fills your view, but the logo and text are shrunk back
         // towards the middle so they aren't huge.
         private static readonly Dictionary<IntPtr, (Vector3 pos, Vector3 scale)> _shrunk = new Dictionary<IntPtr, (Vector3, Vector3)>();
+
+        // Children that fill the screen but must still be shrunk: the studio intro's logo video.
+        private static readonly HashSet<string> _contentNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "Video" };
+
         private static void ShrinkContent(Canvas c, float k)
         {
             try
             {
                 var root = c.transform.TryCast<RectTransform>();
                 if (root == null) return;
-                Vector2 full = root.rect.size;
-                for (int i = 0; i < root.childCount; i++)
+                ShrinkChildren(root, root.rect.size, k, 0, _contentNames);
+            }
+            catch { }
+        }
+
+        // Walks the hierarchy: full-size (background) children are left alone but descended into (the
+        // studio intro logo lives inside a full-screen 'Black' image); smaller ones are shrunk. The
+        // full-size parents are centred on the canvas, so scaling a nested child's localPosition by k
+        // scales it about the canvas centre too.
+        private static void ShrinkChildren(RectTransform parent, Vector2 full, float k, int depth, HashSet<string> pieces)
+        {
+            if (depth > 4) return;
+            for (int i = 0; i < parent.childCount; i++)
+            {
+                var ch = parent.GetChild(i).TryCast<RectTransform>();
+                if (ch == null) continue;
+                var sz = ch.rect.size;
+                bool isPiece = false;
+                try { isPiece = pieces != null && ch.gameObject != null && pieces.Contains(ch.gameObject.name); } catch { }
+                if (!isPiece && sz.x >= full.x * 0.9f && sz.y >= full.y * 0.9f)   // background: keep full size, look inside
                 {
-                    var ch = root.GetChild(i).TryCast<RectTransform>();
-                    if (ch == null) continue;
-                    var sz = ch.rect.size;
-                    if (sz.x >= full.x * 0.9f && sz.y >= full.y * 0.9f) continue;   // background: keep full size
-                    if (!_shrunk.TryGetValue(ch.Pointer, out var o)) { o = (ch.localPosition, ch.localScale); _shrunk[ch.Pointer] = o; }
-                    ch.localPosition = o.pos * k;
-                    ch.localScale = o.scale * k;
+                    ShrinkChildren(ch, full, k, depth + 1, pieces);
+                    continue;
+                }
+                if (!_shrunk.TryGetValue(ch.Pointer, out var o)) { o = (ch.localPosition, ch.localScale); _shrunk[ch.Pointer] = o; }
+                ch.localPosition = o.pos * k;
+                ch.localScale = o.scale * k;
+            }
+        }
+
+        // The studio intro is only shown briefly; slow its logo video down so it lasts longer.
+        // Each VideoPlayer is only touched once, and only if it's the one feeding the 'Video' RawImage.
+        private static readonly HashSet<IntPtr> _spedVideos = new HashSet<IntPtr>();
+
+        private static void SlowIntroVideo(Canvas c)
+        {
+            try
+            {
+                float speed = Plugin.StudioIntroSpeed.Value;
+                if (speed <= 0f) return;
+                RenderTexture target = null;
+                foreach (var raw in c.GetComponentsInChildren<UnityEngine.UI.RawImage>(true))
+                {
+                    if (raw == null || raw.gameObject == null) continue;
+                    string n; try { n = raw.gameObject.name; } catch { continue; }
+                    if (!string.Equals(n, "Video", StringComparison.OrdinalIgnoreCase)) continue;
+                    try { target = raw.texture != null ? raw.texture.TryCast<RenderTexture>() : null; } catch { target = null; }
+                    break;
+                }
+                foreach (var vp in UnityEngine.Object.FindObjectsOfType<UnityEngine.Video.VideoPlayer>())
+                {
+                    if (vp == null) continue;
+                    bool match;
+                    try { match = target != null && vp.targetTexture == target; }
+                    catch { continue; }   // can't read targetTexture: leave this one alone
+                    if (!match || _spedVideos.Contains(vp.Pointer)) continue;
+                    _spedVideos.Add(vp.Pointer);
+                    try { vp.playbackSpeed = speed; Plugin.L.LogInfo("UI: studio intro video speed set to " + speed); }
+                    catch (Exception e) { Plugin.L.LogInfo("UI: could not slow studio intro video: " + e.Message); }
                 }
             }
             catch { }
@@ -349,12 +402,18 @@ namespace MoonXrStarter
                         headRot = ok ? ct.rotation * lr : ct.rotation;
                         headPos = ok ? ct.position + ct.rotation * lp : ct.position;
                     }
-                    const float d = 2f;
-                    float fs = d * 7f * t.BaseScale;   // ~14 m wide at 2 m: past the edges of the headset's view
-                    float down = t.Name == "Studio intro canvas" ? Plugin.IntroLower.Value : 0f;
+                    // Put the canvas well inside 2 m: the world floor is closer than that when looking down
+                    // and would be drawn in front of the canvas. The size scales with d, so the angular
+                    // size (and the logo size) stays the same.
+                    const float d = 0.5f;
+                    float fs = d * 14f * t.BaseScale;   // ~7 m wide at 0.5 m: covers the whole view, top to bottom too
+                    bool studio = t.Name == "Studio intro canvas";
+                    float down = studio ? Plugin.IntroLower.Value * (d / 2f) : 0f;   // tuned for 2 m
                     tr.SetPositionAndRotation(headPos + headRot * new Vector3(0f, -down, d), headRot);
                     tr.localScale = new Vector3(fs, fs, fs);
-                    ShrinkContent(t.Canvas, Plugin.LoadingLogoSize.Value);
+                    float logo = studio ? Plugin.StudioIntroLogoSize.Value : Plugin.LoadingLogoSize.Value;
+                    ShrinkContent(t.Canvas, logo * 7f / 14f);   // logo/text keep their old size
+                    if (studio) SlowIntroVideo(t.Canvas);
                     continue;
                 }
                 Vector3 upv = _smoothRot * Vector3.up;

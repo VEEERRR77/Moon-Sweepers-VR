@@ -12,6 +12,7 @@ Play **Moon Sweepers** (Steam) in PC VR with head tracking and motion controls.
 - **Moon map with the laser:** point at the map to move its cursor and press A to select; the station teleport buttons work too. The laser turns bright yellow on the map and switches itself on while the map is open
 - **Supply wall and upgrade matrix with the laser:** point at an item or upgrade to select it, press A to use it
 - **Building with your hand:** point at a card in the build menu and pull the right trigger to choose it; the piece then follows your right hand across the ground, and a conveyor's far end follows your hand too
+- **Coffee in your hand:** the mug sits in your right hand when you pick up a coffee, and the laser hides until you're done
 - **Full-view loading screens:** loading, teleport and studio intro screens fill your view instead of floating in a window
 - **Wrist HUD:** dust/inventory, money and notices sit on your left wrist; the tool belt stays at the bottom of your view and the compass at the top
 - Menus float in front of you (main and pause menus further back); the field manual and the new-hire contract display properly
@@ -113,6 +114,7 @@ Keyboard: F9 recenter, F11 / F10 view height.
 | `[Motion Controls]` | Laser Pointer, Laser Colour, Laser Brightness, Laser Length | Laser options |
 | `[Motion Controls]` | Thumb Rest D-pad | Left stick becomes the D-pad while your right thumb is on the thumb rest |
 | `[Motion Controls]` | Build Menu Laser | Choose build menu cards by pointing + right trigger (off: left stick + trigger/A) |
+| `[Motion Controls]` | Coffee Cup In Hand, Coffee Cup Offset X/Y/Z | Hold the coffee mug in your right hand, and where it sits |
 | `[Motion Controls]` | Hide Reticle | Hide the brush reticle (cleaning still works) |
 | `[Hand HUD]` | Hand, Width, Height Above Hand | Wrist HUD on `Left`, `Right` or `Off`, its size and height |
 | `[VR UI]` | Distance, Width, Height Offset | Menu panel placement |
@@ -121,9 +123,11 @@ Keyboard: F9 recenter, F11 / F10 view height.
 | `[VR UI]` | Map Width, Teleport Panel Size | Moon map size; optionally show the teleport list as its own bigger panel |
 | `[VR UI]` | Tools Screen Width | Size of the supply wall and upgrade matrix screens |
 | `[VR UI]` | Full View Loading Screens, Loading Logo Size, Studio Intro Lower | Full-view loading screens, their logo size, and the intro's height |
+| `[VR UI]` | Studio Intro Logo Size, Studio Intro Speed | Size of the developer logo on the intro, and how fast the intro plays |
 | `[VR UI]` | Hide HUD | Hide the HUD (also toggled in game) |
 | `[VR UI]` | Field Manual Width, Field Manual Zoom Out, Field Manual Face On | Field manual panel |
 | `[Comfort]` | Disable Motion Blur, Disable Vignette | Comfort tweaks |
+| `[Comfort]` | Hide Broken Pink Objects | Hide objects the game can't draw in VR (they show as pink boxes) |
 
 ## Troubleshooting
 

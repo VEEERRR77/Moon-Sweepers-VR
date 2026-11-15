@@ -66,6 +66,28 @@ namespace MoonXrStarter
             }
         }
 
+        // Coffee: no laser while the mug is held, without touching the user's setting.
+        private static bool _coffeeHeld;
+        private static int _coffeeFrame = -1;
+        /// <summary>True while the player is holding coffee: the laser is hidden regardless of the config.</summary>
+        internal static bool SuppressForCoffee
+        {
+            get
+            {
+                // The mug can be destroyed (scene change) while held and stop reporting: give up on it.
+                if (_coffeeHeld && Time.frameCount - _coffeeFrame > 5) _coffeeHeld = false;
+                return _coffeeHeld;
+            }
+        }
+
+        /// <summary>Called every frame from the coffee cup: tells the laser whether the mug is held.</summary>
+        internal static void CoffeeHeld(bool held)
+        {
+            if (!held) { _coffeeHeld = false; return; }
+            _coffeeHeld = true;
+            _coffeeFrame = Time.frameCount;
+        }
+
         internal static void Toggle()
         {
             Plugin.LaserPointer.Value = !Plugin.LaserPointer.Value;
@@ -107,6 +129,7 @@ namespace MoonXrStarter
             {
                 Vector3 p = Vector3.zero; Quaternion r = Quaternion.identity;
                 bool want = Plugin.LaserPointer.Value
+                            && !SuppressForCoffee
                             && MotionControls.TryGetHandAim(out p, out r)
                             && !MotionControls.SweepHeld();
                 if (!want || !Ensure()) { Show(false, false); return; }
@@ -239,6 +262,7 @@ namespace MoonXrStarter
         private static GameObject Make(PrimitiveType shape, Material src)
         {
             var go = GameObject.CreatePrimitive(shape);
+            go.name = shape == PrimitiveType.Cube ? "MoonXr Laser Beam" : "MoonXr Laser Dot";   // own objects: other fixes (PinkFix) skip these
             go.layer = 2;   // Ignore Raycast, so the laser never blocks the game's own aiming
             var col = go.GetComponent<Collider>();
             if (col != null) UnityEngine.Object.Destroy(col);

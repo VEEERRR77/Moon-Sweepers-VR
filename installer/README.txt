@@ -79,6 +79,8 @@ Controls (Quest / Touch motion controllers)
 - Build menu: point at a card and pull the RIGHT TRIGGER to choose it.
   The piece then follows your right hand along the ground (conveyor
   ends too); confirm as normal.
+- Coffee: the mug sits in your right hand; the laser hides while you
+  hold it and comes back afterwards.
 
 The HUD: tool belt at the bottom of your view, compass at the top,
 dust / money / notices on your LEFT wrist.
