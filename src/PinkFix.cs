@@ -45,18 +45,55 @@ namespace MoonXrStarter
             return false;
         }
 
+        // Looking at every renderer in one go took 60-100 ms, once a second (a visible stutter).
+        // Now the list is fetched every 10 s and checked a slice at a time, each renderer and each
+        // material only once, so it costs a fraction of a millisecond per frame.
+        private const int PerFrame = 150;
+        private static Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppReferenceArray<UnityEngine.Object> _list;
+        private static int _pos;
+        private static readonly HashSet<IntPtr> _checked = new HashSet<IntPtr>();
+        private static readonly Dictionary<IntPtr, bool> _matBroken = new Dictionary<IntPtr, bool>();
+
+        private static bool MaterialBroken(Material m)
+        {
+            if (m == null) return false;
+            IntPtr p;
+            try { p = m.Pointer; } catch { return false; }
+            if (_matBroken.TryGetValue(p, out bool b)) return b;
+            b = IsBroken(m);
+            _matBroken[p] = b;
+            return b;
+        }
+
         public static void Tick()
         {
-            if (_broken || !Plugin.HideBrokenPink.Value || Time.unscaledTime < _next) return;
-            _next = Time.unscaledTime + 1f;
+            if (_broken || !Plugin.HideBrokenPink.Value) return;
             try
             {
-                foreach (var o in Resources.FindObjectsOfTypeAll(Il2CppInterop.Runtime.Il2CppType.Of<Renderer>()))
+                if (_list == null || _pos >= _list.Length)
                 {
+                    if (Time.unscaledTime < _next) return;
+                    _next = Time.unscaledTime + 10f;
+                    long st = Perf.Now();
+                    _list = Resources.FindObjectsOfTypeAll(Il2CppInterop.Runtime.Il2CppType.Of<Renderer>());
+                    Perf.Add("Pink box fix (renderer list)", st);
+                    _pos = 0;
+                    if (_checked.Count > 50000) _checked.Clear();
+                    if (_matBroken.Count > 20000) _matBroken.Clear();
+                }
+                int end = Math.Min(_list.Length, _pos + PerFrame);
+                for (; _pos < end; _pos++)
+                {
+                    var o = _list[_pos];
+                    if (o == null) continue;
+                    IntPtr ptr;
+                    try { ptr = o.Pointer; } catch { continue; }
+                    if (_checked.Contains(ptr)) continue;
                     var r = o.TryCast<Renderer>();
                     if (r == null) continue;
                     var go = r.gameObject;
-                    if (go == null || !go.scene.IsValid()) continue;   // skip prefabs and assets
+                    if (go == null || !go.scene.IsValid()) continue;   // prefabs and assets: look again next time
+                    _checked.Add(ptr);
                     string shader = null;
                     var mats = r.sharedMaterials;
                     if (mats != null)
@@ -64,24 +101,20 @@ namespace MoonXrStarter
                         for (int i = 0; i < mats.Length; i++)
                         {
                             var m = mats[i];
-                            if (!IsBroken(m)) continue;
+                            if (!MaterialBroken(m)) continue;
                             shader = ShaderName(m);
                             break;
                         }
                     }
-                    if (shader == null)
-                    {
-                        // Not broken: forget it, in case it was fixed up after a scene reload.
-                        _handled.Remove(r.Pointer);
-                        continue;
-                    }
+                    if (shader == null) continue;
                     if (IsOurs(go)) continue;
-                    if (!_handled.Add(r.Pointer)) continue;
+                    if (!_handled.Add(ptr)) continue;
                     string parent = "none";
                     try { if (go.transform.parent != null) parent = go.transform.parent.name; } catch { }
                     Plugin.L.LogInfo($"Pink fix: hiding '{go.name}' (parent '{parent}') with shader '{shader}'");
                     if (r.enabled) r.enabled = false;
                 }
+                if (_pos >= _list.Length) _list = null;   // done with this list: let it go
             }
             catch (Exception e)
             {
