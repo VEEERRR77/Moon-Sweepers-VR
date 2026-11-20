@@ -89,6 +89,7 @@ namespace MoonXrStarter
                 WallFix.Install(h);
                 BuildFix.Install(h);
                 ChessPointer.Install(h);
+                GarageFix.Install(h);
 
                 // The coffee mug is shown relative to the (screen-space) game camera, so in VR it
                 // floats away from you. Put it in the right hand instead, after the game positioned it.
@@ -222,7 +223,8 @@ namespace MoonXrStarter
                 }
                 // Chess: the right trigger clicks the virtual mouse (at the square the laser points
                 // at, see ChessPointer), and doesn't sweep.
-                if (HeadTracking.ChessActive)
+                // Garage menu: the same, the trigger is the mouse click there (see GarageFix).
+                if (HeadTracking.ChessActive || GarageFix.Open)
                 {
                     _rTrigger = 0f;
                 }
