@@ -1,6 +1,6 @@
 // Hides objects whose shader failed: Unity draws those with its error shader, which shows up as a
 // bright pink box in the headset (e.g. at the character's feet on the main menu). Switching such
-// renderers off is easier on the eyes than the magenta blob.
+// renderers off is easier on the eyes than the magenta blob. Only runs while the main menu is up.
 using System;
 using System.Collections.Generic;
 using UnityEngine;
@@ -68,6 +68,8 @@ namespace MoonXrStarter
         public static void Tick()
         {
             if (_broken || !Plugin.HideBrokenPink.Value) return;
+            // The broken pink objects are only on the main menu: no scanning at all in the game.
+            if (!UiToWorld.MainMenuShowing) { _list = null; _next = 0f; return; }
             try
             {
                 if (_list == null || _pos >= _list.Length)

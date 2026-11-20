@@ -169,6 +169,8 @@ namespace MoonXrStarter
 
         private static readonly List<Tracked> _tracked = new List<Tracked>();
         internal static bool RenderHookActive;
+        /// <summary>True while the game's main menu is on screen.</summary>
+        internal static bool MainMenuShowing;
         private float _nextScan;
         private bool _loggedNoCamera;
 
@@ -190,6 +192,7 @@ namespace MoonXrStarter
                 long pt = Perf.Now(); Place(cam); Perf.Add("Menu placement", pt); // baseline; refined at render time by HeadTracking
                 Canvas menu = null;
                 foreach (var t in _tracked) if (t.Canvas != null && t.Name == "Main menu") { menu = t.Canvas; break; }
+                try { MainMenuShowing = menu != null && menu.gameObject.activeInHierarchy; } catch { MainMenuShowing = false; }
                 UpdateCheck.Tick(menu);
             }
             catch (Exception e)
