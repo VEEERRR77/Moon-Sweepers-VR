@@ -153,6 +153,8 @@ Credits
 - MoonSweepers BepInEx Patcher 1.0.2 by boverson777 - not included;
   get it from nexusmods.com/moonsweepers/mods/9 (please endorse it)
 - Moon Sweepers VR plugin and installer (MIT) - source on GitHub
+- Bamasuperman - air hockey camera fix and testing. Officially, any bug
+  in any part of the mod is his fault.
 
 Support
 -------

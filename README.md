@@ -185,6 +185,7 @@ Source files: `Plugin.cs` (settings, starts OpenVR), `HeadTracking.cs`, `UiToWor
 ## Credits and licences
 
 - **This project:** MIT (see [LICENSE](LICENSE)).
+- **Bamasuperman** for the air hockey camera fix and for testing. Officially, any bug in any part of the mod is his fault.
 - **[UUVR](https://github.com/Raicuparta/uuvr)** by Raicuparta, GPL-3.0. Downloaded by the installer from its official releases; not included.
 - **[BepInEx](https://github.com/BepInEx/BepInEx)**, LGPL-2.1. Downloaded by the installer from builds.bepinex.dev; not included.
 - **[MoonSweepers BepInEx Patcher](https://www.nexusmods.com/moonsweepers/mods/9)** by boverson777. Not included or re-hosted: users download it from Nexus Mods themselves. Please endorse it there.
