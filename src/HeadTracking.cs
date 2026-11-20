@@ -64,10 +64,20 @@ namespace MoonXrStarter
         {
             var root = GameCameraRoot(vrCam);
             // Motion controls: draw the held tool as if it hung off the right hand instead of the face.
-            if (MotionControls.HandFrame == Time.frameCount)
+            if (MotionControls.HandFrame == Time.frameCount && !TableSessionActive)
             {
                 var hp = MotionControls.HandPos; var hr = MotionControls.HandRot;
                 var sc = root.lossyScale;
+                // Brushes only, and only while not sweeping: pull them in toward the hand and lower
+                // them. The weight fades to 0 as soon as the trigger is pressed, so the brush on the
+                // floor while sweeping is exactly where it always was.
+                bool sweeping = MotionControls.SweepHeld();
+                float fade = Mathf.Max(0.01f, Plugin.BrushOffsetFade.Value);
+                if (_brushWFrame != Time.frameCount)
+                {
+                    _brushWFrame = Time.frameCount;
+                    _brushW = Mathf.MoveTowards(_brushW, sweeping ? 0f : 1f, Time.unscaledDeltaTime / fade);
+                }
                 for (int i = 0; i < root.childCount; i++)
                 {
                     var c = root.GetChild(i);
@@ -75,7 +85,28 @@ namespace MoonXrStarter
                     try { if (c.GetComponent<Camera>() != null) continue; } catch { }
                     var lp = c.localPosition; var lr = c.localRotation;
                     SavedChildren.Add(new SavedChild { T = c, LocalPos = lp, LocalRot = lr, Rot = true });
-                    c.SetPositionAndRotation(hp + hr * Vector3.Scale(lp, sc), hr * lr);
+                    var wpos = hp + hr * Vector3.Scale(lp, sc);
+                    Transform hammer = IsBrushHolder(c) ? ActiveHammer(c) : null;
+                    if (hammer != null)
+                    {
+                        // Hammer: put its own origin right in the hand (where the laser starts), keeping
+                        // the rotation exactly as the game gives it. An optional hand-space nudge on top.
+                        var rot = hr * lr;
+                        var hs = c.lossyScale; // holder scale applies to the hammer's local offset
+                        var hl = hammer.localPosition;
+                        var nudge = new Vector3(Plugin.HammerOffsetX.Value, Plugin.HammerOffsetY.Value, Plugin.HammerOffsetZ.Value);
+                        wpos = hp + hr * nudge - rot * Vector3.Scale(hl, hs);
+                    }
+                    else if (_brushW > 0.0001f && IsBrushHolder(c))
+                    {
+                        wpos = Vector3.Lerp(wpos, hp, Mathf.Clamp01(Plugin.BrushPullIn.Value) * _brushW);
+                        var up = WorldUp(hp);
+                        wpos -= up * (Plugin.BrushLower.Value * _brushW);
+                        // Back toward your body, along where your head faces (flattened to the ground).
+                        var fwd = Vector3.ProjectOnPlane(vrCam.forward, up);
+                        if (fwd.sqrMagnitude > 1e-6f) wpos -= fwd.normalized * (Plugin.BrushCloser.Value * _brushW);
+                    }
+                    c.SetPositionAndRotation(wpos, hr * lr);
                 }
                 return;
             }
@@ -91,6 +122,27 @@ namespace MoonXrStarter
                 var dirLocal = root.InverseTransformDirection(WorldUp(root.position) * off);
                 c.localPosition += new Vector3(dirLocal.x / Mathf.Max(ls.x, 1e-4f), dirLocal.y / Mathf.Max(ls.y, 1e-4f), dirLocal.z / Mathf.Max(ls.z, 1e-4f));
             }
+        }
+
+        private static float _brushW = 1f; private static int _brushWFrame = -1;
+        private static Transform ActiveHammer(Transform holder)
+        {
+            try
+            {
+                for (int i = 0; i < holder.childCount; i++)
+                {
+                    var t = holder.GetChild(i);
+                    if (t == null || !t.gameObject.activeSelf) continue;
+                    var n = t.name;
+                    if (n != null && n.StartsWith("building_tool")) return t;
+                }
+            }
+            catch { }
+            return null;
+        }
+        private static bool IsBrushHolder(Transform c)
+        {
+            try { var n = c.name; return n != null && n.StartsWith("Equipped cleaning tool"); } catch { return false; }
         }
 
         private static void RestoreTools()
@@ -418,6 +470,41 @@ namespace MoonXrStarter
         // Never modify the game's camera transform permanently, gameplay input, or mallet.
         private static Transform _hockeyAim;
         private static float _nextHockeySearch;
+
+        // Looking up the tables / chess screens walks every object of that type, so it's only done
+        // when it can find something new: for 15 s after you arrive somewhere new (teleport, loading
+        // a save; stations load in over a few seconds, so every 3 s in that window), and otherwise
+        // once a minute as a fallback.
+        private static Vector3 _scanStationPos = new Vector3(1e9f, 0f, 0f);
+        private static float _scanBurstUntil = -1f;
+        private static int _scanCheckFrame = -1;
+        private static bool TableScanDue(ref float next)
+        {
+            float now = Time.unscaledTime;
+            if (_scanCheckFrame != Time.frameCount)
+            {
+                _scanCheckFrame = Time.frameCount;
+                try
+                {
+                    var cam = Camera.main;
+                    if (cam != null)
+                    {
+                        var p = cam.transform.position;
+                        if ((p - _scanStationPos).sqrMagnitude > 150f * 150f)
+                        {
+                            _scanStationPos = p;
+                            _scanBurstUntil = now + 15f;
+                            _nextHockeySearch = 0f; _nextChessHudSearch = 0f; // scan straight away
+                        }
+                    }
+                }
+                catch { }
+            }
+            if (now < next) return false;
+            next = now + (now < _scanBurstUntil ? 3f : 60f);
+            return true;
+        }
+
         private static bool _hockeyWasActive;
         private static Vector3 _hockeyAnchorPos;
         private static Quaternion _hockeyAnchorRot;
@@ -426,38 +513,59 @@ namespace MoonXrStarter
         private const float HockeyEndDelay = 1.0f;
         private static string _hockeyEndName = "Air hockey | right end";
 
+        // Every air hockey table's "aim" marker. Each station has its own table and stations load
+        // as you teleport, so the list is refreshed regularly (a typed lookup is cheap) and the
+        // active one is used.
+        private static readonly System.Collections.Generic.List<Transform> _hockeyAims = new System.Collections.Generic.List<Transform>();
+        private static int _hockeyTablesLogged = -1;
+
+        private static void RefreshHockeyAims()
+        {
+            _hockeyAims.Clear();
+            foreach (var o in Resources.FindObjectsOfTypeAll(Il2CppInterop.Runtime.Il2CppType.Of<MoonCleaners.MoonAirHockey>()))
+            {
+                var h = o.TryCast<MoonCleaners.MoonAirHockey>();
+                if (h == null || h.gameObject == null || !h.gameObject.scene.IsValid()) continue;
+                Transform table = h.transform;
+                while (table != null && table.name != "Air hockey") table = table.parent;
+                if (table == null) table = h.transform.Find("Air hockey");
+                var t = table != null ? table.Find("Air hockey | aim") : null;
+                if (t != null && !_hockeyAims.Contains(t)) _hockeyAims.Add(t);
+            }
+            if (_hockeyAims.Count != _hockeyTablesLogged)
+            {
+                _hockeyTablesLogged = _hockeyAims.Count;
+                Plugin.L.LogInfo($"[HockeyCamera] Found {_hockeyAims.Count} air hockey table(s)");
+            }
+        }
+
         private static bool HockeyActive()
         {
             try
             {
-                if (_hockeyAim == null && Time.unscaledTime >= _nextHockeySearch)
+                // While playing, stick with the table we're at.
+                if (_hockeyWasActive && _hockeyAim != null && _hockeyAim.gameObject.activeInHierarchy) return true;
+                float now = Time.unscaledTime;
+                if (TableScanDue(ref _nextHockeySearch))
                 {
-                    // Look only at the air hockey table itself (scanning every object in the game
-                    // every couple of seconds caused big frame hitches, and SteamVR then dropped the
-                    // game's controller input).
-                    // Not found yet: look again soon (type-filtered lookups are cheap), so the first
-                    // game start doesn't show the game's own transition camera for up to 5 s.
-                    _nextHockeySearch = Time.unscaledTime + 0.5f;
-                    foreach (var o in Resources.FindObjectsOfTypeAll(Il2CppInterop.Runtime.Il2CppType.Of<MoonCleaners.MoonAirHockey>()))
-                    {
-                        var h = o.TryCast<MoonCleaners.MoonAirHockey>();
-                        if (h == null || h.gameObject == null || !h.gameObject.scene.IsValid()) continue;
-                        Transform table = h.transform;
-                        while (table != null && table.name != "Air hockey") table = table.parent;
-                        if (table == null) table = h.transform.Find("Air hockey");
-                        var t = table != null ? table.Find("Air hockey | aim") : null;
-                        if (t == null) continue;
-                        _hockeyAim = t;
-                        Plugin.L.LogInfo("[HockeyCamera] Found air hockey activation marker");
-                        break;
-                    }
+                    RefreshHockeyAims();
                 }
-                return _hockeyAim != null && _hockeyAim.gameObject.activeInHierarchy;
+                for (int i = 0; i < _hockeyAims.Count; i++)
+                {
+                    var t = _hockeyAims[i];
+                    if (t == null) continue;
+                    try
+                    {
+                        if (t.gameObject != null && t.gameObject.activeInHierarchy) { _hockeyAim = t; return true; }
+                    }
+                    catch { }
+                }
+                return false;
             }
             catch (Exception e)
             {
                 if (!_hockeyWarned) { _hockeyWarned = true; Plugin.L.LogWarning("[HockeyCamera] Marker lookup failed: " + e.Message); }
-                _hockeyAim = null;
+                _hockeyAims.Clear();
                 return false;
             }
         }
@@ -485,8 +593,9 @@ namespace MoonXrStarter
                     // The vanilla minigame camera is normally located outside the
                     // player's goal. Compare horizontal positions only; camera elevation
                     // does not help us decide which goal belongs to the player.
-                    Vector3 a = gameCamera - right.position; a.y = 0f;
-                    Vector3 b = gameCamera - left.position; b.y = 0f;
+                    Vector3 hup = WorldUp(gameCamera);
+                    Vector3 a = Vector3.ProjectOnPlane(gameCamera - right.position, hup);
+                    Vector3 b = Vector3.ProjectOnPlane(gameCamera - left.position, hup);
                     _hockeyEndName = a.sqrMagnitude <= b.sqrMagnitude
                         ? "Air hockey | right end" : "Air hockey | left end";
                     if (Mathf.Abs(a.sqrMagnitude - b.sqrMagnitude) < 0.25f)
@@ -513,16 +622,18 @@ namespace MoonXrStarter
                 Transform nearEnd = table.Find(_hockeyEndName);
                 if (nearEnd == null) return false;
                 Vector3 tableCenter = table.position;
-                Vector3 outward = nearEnd.position - tableCenter;
-                outward.y = 0f;
+                // "Up" is the Moon's surface normal here (the far-side stations are upside down in
+                // world terms), not world Y.
+                Vector3 up = WorldUp(tableCenter);
+                Vector3 outward = Vector3.ProjectOnPlane(nearEnd.position - tableCenter, up);
                 if (outward.sqrMagnitude < 0.01f) return false;
                 outward.Normalize();
                 Vector3 forward = -outward; // inward toward the opponent
-                Vector3 sideways = Vector3.Cross(Vector3.up, forward).normalized;
+                Vector3 sideways = Vector3.Cross(up, forward).normalized;
                 position = nearEnd.position + outward * Plugin.HockeyEndGap.Value
                            + sideways * Plugin.HockeySideOffset.Value;
-                position.y = tableCenter.y + Plugin.HockeyEyeHeight.Value;
-                rotation = Quaternion.LookRotation(forward, Vector3.up);
+                position += up * (Vector3.Dot(tableCenter - position, up) + Plugin.HockeyEyeHeight.Value);
+                rotation = Quaternion.LookRotation(forward, up);
                 return true;
             }
             catch (Exception e)
@@ -553,6 +664,7 @@ namespace MoonXrStarter
                 return;
             }
             _hockeyLostSince = -1f;
+            _tableSeenTime = now;
             if (!_hockeyWasActive)
             {
                 if (!SelectHockeyEnd(gamePos) || !TryHockeyPose(out _hockeyAnchorPos, out _hockeyAnchorRot))
@@ -603,30 +715,54 @@ namespace MoonXrStarter
         /// <summary>True while the chess seated view is being applied (used by ChessPointer).</summary>
         internal static bool ChessActive => _chessOverride;
         internal static bool HockeyViewActive => _hockeyWasActive;
+        // True from the moment a table game is detected until well after it ends, including the
+        // join transition where the game's markers flicker. While true, nothing may move the game
+        // camera to the hand (that feeds into the game's sit-down camera move and flips the view).
+        private static float _tableSeenTime = -100f;
+        internal static bool TableSessionActive =>
+            ViewOverrideActive || _hockeyWasActive || _chessOverride || _chessSeated ||
+            Time.unscaledTime - _tableSeenTime < 0.75f;
         internal static MoonCleaners.MoonChessTable ChessTable => _chessTable;
 
         // Is the game's chess board UI on screen? Looks only at Canvas objects, every 0.5 s at most
         // while "Chess HUD" hasn't been found yet.
+        // Every station has its own "Chess HUD" canvas, and stations load as you teleport: keep all
+        // of them (refreshed regularly with a typed lookup) and treat chess as on when any is shown.
+        private static readonly System.Collections.Generic.List<Canvas> _chessHuds = new System.Collections.Generic.List<Canvas>();
+        private static int _chessHudsLogged = -1;
         private static bool ChessHudActive()
         {
-            if (_chessHud == null && Time.unscaledTime >= _nextChessHudSearch)
+            float now = Time.unscaledTime;
+            if (TableScanDue(ref _nextChessHudSearch))
             {
-                _nextChessHudSearch = Time.unscaledTime + 0.5f;
+                _chessHuds.Clear();
                 foreach (var o in Resources.FindObjectsOfTypeAll(Il2CppInterop.Runtime.Il2CppType.Of<Canvas>()))
                 {
                     var c = o.TryCast<Canvas>();
                     if (c == null || c.gameObject == null || !c.gameObject.scene.IsValid()) continue;
                     if (!string.Equals(c.gameObject.name, "Chess HUD", StringComparison.Ordinal)) continue;
-                    _chessHud = c;
-                    Plugin.L.LogInfo("[ChessCamera] Found chess HUD canvas");
-                    break;
+                    _chessHuds.Add(c);
+                }
+                if (_chessHuds.Count != _chessHudsLogged)
+                {
+                    _chessHudsLogged = _chessHuds.Count;
+                    Plugin.L.LogInfo($"[ChessCamera] Found {_chessHuds.Count} chess HUD canvas(es)");
                 }
             }
-            return _chessHud != null && _chessHud.gameObject != null
-                && _chessHud.gameObject.activeInHierarchy && _chessHud.enabled;
+            for (int k = 0; k < _chessHuds.Count; k++)
+            {
+                try
+                {
+                    var c = _chessHuds[k];
+                    if (c != null && c.gameObject != null && c.gameObject.activeInHierarchy && c.enabled) return true;
+                }
+                catch { }
+            }
+            return false;
         }
 
         // Cheap component lookup: only the one game type, at most every 5 s when nothing is found.
+        private static float _nextChessRetry; private static int _chessTablesLogged = -1;
         private static void RefreshChessTables()
         {
             _chessTables.Clear();
@@ -636,7 +772,7 @@ namespace MoonXrStarter
                 if (t == null || t.gameObject == null || !t.gameObject.scene.IsValid()) continue;
                 _chessTables.Add(t);
             }
-            Plugin.L.LogInfo($"[ChessCamera] Found {_chessTables.Count} chess table(s)");
+            if (_chessTables.Count != _chessTablesLogged) { _chessTablesLogged = _chessTables.Count; Plugin.L.LogInfo($"[ChessCamera] Found {_chessTables.Count} chess table(s)"); }
         }
 
         // Cheap component lookup: only the one game type, so a short retry while it's missing is fine.
@@ -651,19 +787,29 @@ namespace MoonXrStarter
             }
         }
 
-        private static Vector3 Horizontal(Vector3 v) { v.y = 0f; return v; }
+        // Squared distance between two points along the Moon's surface (ignoring height), using the
+        // surface "up" at a. Points more than 5 m apart in height count as far away, so a table at
+        // the opposite station can never look close (east/west stations sit on world X, and
+        // flattening world Y there would merge them).
+        private static float FlatDistSq(Vector3 a, Vector3 b)
+        {
+            var up = WorldUp(a);
+            var d = b - a;
+            float h = Vector3.Dot(d, up);
+            if (Mathf.Abs(h) > 5f) return float.MaxValue;
+            return (d - up * h).sqrMagnitude;
+        }
 
         // Nearest chess table to "at", or null when none is within ChessTableRadius.
         private static MoonCleaners.MoonChessTable NearestChessTable(Vector3 at)
         {
             MoonCleaners.MoonChessTable near = null;
             float best = ChessTableRadius * ChessTableRadius;
-            Vector3 flat = Horizontal(at);
             for (int i = 0; i < _chessTables.Count; i++)
             {
                 var t = _chessTables[i];
                 if (t == null || t.gameObject == null) continue;
-                float d = (flat - Horizontal(t.transform.position)).sqrMagnitude;
+                float d = FlatDistSq(at, t.transform.position);
                 if (d > best) continue;
                 best = d; near = t;
             }
@@ -674,8 +820,7 @@ namespace MoonXrStarter
         private static MoonCleaners.MoonLoungeSpot PickChessSeat(MoonCleaners.MoonChessTable table, Vector3 wasAt)
         {
             if (table == null) return null;
-            Vector3 flatTable = Horizontal(table.transform.position);
-            Vector3 flatWas = Horizontal(wasAt);
+            Vector3 tablePos = table.transform.position;
             MoonCleaners.MoonLoungeSpot bestSeat = null;
             float best = float.MaxValue;
             for (int i = 0; i < _chessSpots.Count; i++)
@@ -684,8 +829,8 @@ namespace MoonXrStarter
                 if (s == null || s.gameObject == null) continue;
                 try
                 {
-                    if ((Horizontal(s.transform.position) - flatTable).sqrMagnitude > ChessSpotRadius * ChessSpotRadius) continue;
-                    float d = (Horizontal(s.BodyPosition) - flatWas).sqrMagnitude;
+                    if (FlatDistSq(tablePos, s.transform.position) > ChessSpotRadius * ChessSpotRadius) continue;
+                    float d = FlatDistSq(wasAt, s.BodyPosition);
                     if (d >= best) continue;
                     best = d; bestSeat = s;
                 }
@@ -732,6 +877,7 @@ namespace MoonXrStarter
                 else
                 {
                     _chessLostSince = -1f;
+                    _tableSeenTime = now;
                 }
 
                 if ((_chessTables.Count == 0 || _nextChessTableSearch == 0f) && now >= _nextChessTableSearch)
@@ -752,9 +898,18 @@ namespace MoonXrStarter
                     if (!hud) return;
                     Vector3 at = _haveFreeGamePos ? _lastFreeGamePos : gamePos;
                     MoonCleaners.MoonChessTable table = NearestChessTable(at);
-                    if (table == null) return;
-                    var seat = PickChessSeat(table, at);
-                    if (seat == null) return;
+                    var seat = table != null ? PickChessSeat(table, at) : null;
+                    if (seat == null && now >= _nextChessRetry)
+                    {
+                        // After teleporting, this station's tables and seats may not be in our
+                        // lists yet: look them up again and retry.
+                        _nextChessRetry = now + 0.5f;
+                        RefreshChessTables();
+                        RefreshChessSpots();
+                        table = NearestChessTable(at);
+                        seat = table != null ? PickChessSeat(table, at) : null;
+                    }
+                    if (table == null || seat == null) return;
                     _chessSeated = true;
                     _chessSpot = seat;
                     _chessTable = table;
@@ -789,13 +944,14 @@ namespace MoonXrStarter
             var table = _chessTable;
             if (seat == null || seat.gameObject == null || table == null || table.gameObject == null) return false;
             Vector3 body = seat.BodyPosition;
-            position = body + Vector3.up * Plugin.ChessEyeHeight.Value;
-            Vector3 toward = Horizontal(table.transform.position - body);
+            Vector3 up = WorldUp(body); // Moon surface normal (far-side stations are upside down in world terms)
+            position = body + up * Plugin.ChessEyeHeight.Value;
+            Vector3 toward = Vector3.ProjectOnPlane(table.transform.position - body, up);
             float len = toward.magnitude;
             if (len < 0.01f) return false;
             toward /= len;
             position += toward * Plugin.ChessLean.Value;
-            rotation = Quaternion.LookRotation(toward, Vector3.up);
+            rotation = Quaternion.LookRotation(toward, up);
             return true;
         }
 
@@ -818,7 +974,9 @@ namespace MoonXrStarter
                 tr.SetPositionAndRotation(renderPos + renderRot * hp + WorldUp(renderPos) * Plugin.HeadHeightOffset.Value, renderRot * hr);
                 OffsetTools(tr);
                 // A held tool (brush) dangling in front of a seated/table view looks wrong: hide it.
-                if (_hockeyWasActive || _chessOverride) HideHeldTools(tr);
+                // Also for the moment after you stand up, so the brush doesn't flash up in front of
+                // your face before it's back in your hand.
+                if (_hockeyWasActive || _chessOverride || TableSessionActive) HideHeldTools(tr);
                 if (!_loggedFirst) { _loggedFirst = true; Plugin.L.LogInfo($"Head tracking: applying to camera '{cam.name}'"); }
                 if (!_loggedHierarchy && Time.unscaledTime > 30f)
                 {

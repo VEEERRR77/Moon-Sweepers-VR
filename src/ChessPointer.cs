@@ -17,7 +17,7 @@ namespace MoonXrStarter
         private static Type _t;
         private static MethodInfo _squareAt, _squareLocal, _input;
         private static PropertyInfo _hovered;
-        private static bool _loggedError, _loggedHover, _loggedOverwrite, _loggedRun, _loggedMouse, _loggedClick;
+        private static bool _loggedError, _loggedHover, _loggedOverwrite, _loggedRun, _loggedMouse, _loggedClick; private static int _clickLogs; private static System.IntPtr _lastTablePtr;
 
         // Worked out once per table: does SquareAt() take a world point (true) or a table-local one?
         private static IntPtr _probedPtr;
@@ -174,7 +174,7 @@ namespace MoonXrStarter
             if (down && !_mouseDown)
             {
                 _mouseDown = true;
-                if (!_loggedClick) { _loggedClick = true; Plugin.L.LogInfo($"[ChessPointer] right trigger clicks the virtual mouse at ({_mousePos.x:F0},{_mousePos.y:F0})"); }
+                if (_clickLogs < 30) { _clickLogs++; Plugin.L.LogInfo($"[ChessPointer] right trigger click: square {sq}, mouse sent {sent} at ({_mousePos.x:F0},{_mousePos.y:F0}), screen {Screen.width}x{Screen.height}"); }
             }
             else if (!down) _mouseDown = false;
             if (sent) _mouseWasActive = true;
@@ -202,6 +202,12 @@ namespace MoonXrStarter
                 }
                 if (!_loggedRun) { _loggedRun = true; Plugin.L.LogInfo("[ChessPointer] chess input running with the seated view"); }
                 if (!(__instance is Component table) || _squareAt == null || _squareLocal == null) return;
+                try
+                {
+                    var ptr = table.Pointer;
+                    if (ptr != _lastTablePtr) { _lastTablePtr = ptr; Plugin.L.LogInfo($"[ChessPointer] input from table at {table.transform.position.ToString("F1")}"); }
+                }
+                catch { }
                 DriveMouse(table);
                 if (_hovered == null) return;
                 int sq = SquareUnderLaser(table, out _);

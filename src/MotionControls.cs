@@ -479,7 +479,7 @@ namespace MoonXrStarter
                 if (!Plugin.MotionControlsEnabled.Value) return;
                 // At the chess / air hockey table the game drives its own camera; moving it to the
                 // hand there feeds back into the game's camera and flips the view.
-                if (HeadTracking.ViewOverrideActive) return;
+                if (HeadTracking.ViewOverrideActive || HeadTracking.TableSessionActive) return;
                 Poll();
                 if (!_rightOk) return;
                 Vector3 wp; Quaternion wr;

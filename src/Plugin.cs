@@ -32,6 +32,7 @@ namespace MoonXrStarter
         internal static BepInEx.Configuration.ConfigEntry<bool> PositionTracking;
         internal static BepInEx.Configuration.ConfigEntry<float> HeadHeightOffset;
         internal static BepInEx.Configuration.ConfigEntry<float> ToolHeightOffset;
+        internal static BepInEx.Configuration.ConfigEntry<float> BrushPullIn, BrushLower, BrushOffsetFade, BrushCloser, HammerOffsetX, HammerOffsetY, HammerOffsetZ;
         internal static BepInEx.Configuration.ConfigEntry<float> UiWidth;
         internal static BepInEx.Configuration.ConfigEntry<float> UiHeightOffset;
         internal static BepInEx.Configuration.ConfigEntry<float> ManualWidth;
@@ -84,6 +85,13 @@ namespace MoonXrStarter
             PositionTracking = Config.Bind("Head Tracking", "Position Tracking", true, "Also apply head position (lean). Turn off for rotation only.");
             HeadHeightOffset = Config.Bind("Head Tracking", "Height Offset", -0.2f, "Raises (+) or lowers (-) your view, in metres. Adjust in-game with LB+RB + D-pad up/down, or F11/F10.");
             ToolHeightOffset = Config.Bind("Head Tracking", "Tool Height Offset", -0.25f, "Moves your held tool up (+) or down (-) without moving your view, in metres. Adjust in-game with LB+RB + D-pad right/left.");
+            BrushPullIn = Config.Bind("Motion Controls", "Brush Pull In", 0.5f, "Motion controls: how far a held brush is pulled in toward your hand when you're not sweeping (0 = as before, 1 = right in your hand). The brush on the floor while sweeping is not affected.");
+            BrushLower = Config.Bind("Motion Controls", "Brush Lower", 0.15f, "Motion controls: how far a held brush is lowered when you're not sweeping, in metres. The brush on the floor while sweeping is not affected.");
+            BrushCloser = Config.Bind("Motion Controls", "Brush Closer To Body", 0.5f, "Motion controls: how far a held brush is moved back toward your body when you're not sweeping, in metres. The brush on the floor while sweeping is not affected.");
+            HammerOffsetX = Config.Bind("Motion Controls", "Hammer Offset X", 0f, "Motion controls: the hammer sits in your right hand; nudge it right (+) / left (-), in metres, relative to the controller.");
+            HammerOffsetY = Config.Bind("Motion Controls", "Hammer Offset Y", 0f, "Motion controls: nudge the hammer up (+) / down (-) relative to the controller, in metres.");
+            HammerOffsetZ = Config.Bind("Motion Controls", "Hammer Offset Z", 0f, "Motion controls: nudge the hammer forward (+) / back (-) along the controller, in metres.");
+            BrushOffsetFade = Config.Bind("Motion Controls", "Brush Offset Fade", 0.15f, "Seconds the brush takes to move between its held position and the sweeping position when you press or release the trigger.");
             UiDistance = Config.Bind("VR UI", "Distance", 1.5f, "How far in front of you the menu/HUD panel floats, in metres.");
             UiWidth = Config.Bind("VR UI", "Width", 2.4f, "Width of the menu/HUD panel, in metres.");
             UiHeightOffset = Config.Bind("VR UI", "Height Offset", 0f, "Moves the panel up (+) or down (-), in metres.");
