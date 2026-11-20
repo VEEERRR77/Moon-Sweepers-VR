@@ -92,9 +92,9 @@ namespace MoonXrStarter
 
         public static void Tick()
         {
-            long t = Perf.Now(); if (XrStarter.Started) FixStageCameras(); Perf.Add("Image camera fix", t);
-            t = Perf.Now(); if (XrStarter.Started) KillVignette(); Perf.Add("Vignette removal", t);
-            t = Perf.Now(); if (XrStarter.Started) PinkFix.Tick(); Perf.Add("Pink box fix", t);
+            long pt = Perf.Now(); if (XrStarter.Started) FixStageCameras(); Perf.Add("Image camera fix", pt);
+            pt = Perf.Now(); if (XrStarter.Started) KillVignette(); Perf.Add("Vignette removal", pt);
+            pt = Perf.Now(); if (XrStarter.Started) PinkFix.Tick(); Perf.Add("Pink box fix", pt);
             if (_broken || !Plugin.DisableMotionBlur.Value || !XrStarter.Started) return;
             if (Time.unscaledTime < _next) return;
             _next = Time.unscaledTime + 2f;
