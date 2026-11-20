@@ -67,6 +67,11 @@ namespace MoonXrStarter
 
         private static void Pre(object __instance)
         {
+            long pt = Perf.Now();
+            try { PreInner(__instance); } finally { Perf.Add("Garage menu", pt); }
+        }
+        private static void PreInner(object __instance)
+        {
             try
             {
                 bool open = __instance != null && Plugin.MotionControlsEnabled.Value

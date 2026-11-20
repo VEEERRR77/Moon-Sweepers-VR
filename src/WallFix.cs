@@ -59,7 +59,9 @@ namespace MoonXrStarter
 
         private static void Pre(object __instance)
         {
+            long pt = Perf.Now();
             if (__instance != null && _byType.TryGetValue(__instance.GetType(), out var me)) me.Run(__instance);
+            Perf.Add("Supply wall / upgrades laser", pt);
         }
 
         private static RectTransform AsRect(object o)

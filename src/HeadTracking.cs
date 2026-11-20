@@ -257,11 +257,12 @@ namespace MoonXrStarter
 
         private void Update()
         {
+            Perf.Frame();
             if (!Plugin.HeadTrackingEnabled.Value) return;
-            HandleControls();
-            MotionControls.Tick();
+            long t = Perf.Now(); HandleControls(); Perf.Add("Controls", t);
+            t = Perf.Now(); MotionControls.Tick(); Perf.Add("Motion controls", t);
             Comfort.Tick();
-            ScreenProbe.Tick();
+            t = Perf.Now(); ScreenProbe.Tick(); Perf.Add("Screen probe", t);
             // Only hook rendering once the game has fully booted (hooking during startup can crash it).
             if (!_registered && !_fallback && Time.unscaledTime >= _nextRegisterTry
                 && Time.frameCount > 300 && XrStarter.Started && Camera.main != null)
@@ -287,8 +288,8 @@ namespace MoonXrStarter
         // Runs just before Unity locks in UI positions for the frame (after all LateUpdates).
         private static void OnPreWillRenderCanvases()
         {
-            Laser.Tick();   // after all game updates, so the beam lines up with this frame's aim
-            ManualView.Tick();
+            long pt = Perf.Now(); Laser.Tick(); Perf.Add("Laser", pt);   // after all game updates, so the beam lines up with this frame's aim
+            pt = Perf.Now(); ManualView.Tick(); Perf.Add("Field manual view", pt);
             try
             {
                 if (!Plugin.UiRenderTimePlacement.Value) return;
@@ -487,6 +488,11 @@ namespace MoonXrStarter
         private static int _hockeyTablesLogged = -1;
 
         private static void RefreshHockeyAims()
+        {
+            long pt = Perf.Now();
+            try { RefreshHockeyAimsInner(); } finally { Perf.Add("Air hockey table search", pt); }
+        }
+        private static void RefreshHockeyAimsInner()
         {
             _hockeyAims.Clear();
             foreach (var o in Resources.FindObjectsOfTypeAll(Il2CppInterop.Runtime.Il2CppType.Of<MoonCleaners.MoonAirHockey>()))
@@ -985,14 +991,16 @@ namespace MoonXrStarter
                     if (main != null && (cam.Pointer == main.Pointer || GameCameraRoot(cam.transform).Pointer == main.transform.Pointer))
                     {
                         _lastUiFrame = f;
+                        long ut = Perf.Now();
                         UiToWorld.Place(main); // final pose of the game's own camera for this frame
-                        MapFix.Layout();
+                        Perf.Add("Menu placement (render)", ut);
+                        ut = Perf.Now(); MapFix.Layout(); Perf.Add("Map layout", ut);
                         if (!_loggedUiCam) { _loggedUiCam = true; Plugin.L.LogInfo("UI: render-time placement active"); }
                     }
                 }
             }
             catch { }
-            Apply(cam);
+            long at = Perf.Now(); Apply(cam); Perf.Add("Head tracking + table views", at);
         }
 
         private static void OnEnd(ScriptableRenderContext ctx, Camera cam)

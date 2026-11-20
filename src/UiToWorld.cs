@@ -185,9 +185,9 @@ namespace MoonXrStarter
                 if (Time.unscaledTime >= _nextScan)
                 {
                     _nextScan = Time.unscaledTime + 1f;
-                    Scan(cam);
+                    long st = Perf.Now(); Scan(cam); Perf.Add("Menu scan (incl. border hiding)", st);
                 }
-                Place(cam); // baseline; refined at render time by HeadTracking
+                long pt = Perf.Now(); Place(cam); Perf.Add("Menu placement", pt); // baseline; refined at render time by HeadTracking
                 Canvas menu = null;
                 foreach (var t in _tracked) if (t.Canvas != null && t.Name == "Main menu") { menu = t.Canvas; break; }
                 UpdateCheck.Tick(menu);
@@ -236,7 +236,7 @@ namespace MoonXrStarter
                 HeadTracking.NoteCanvas(c);
                 if (Plugin.UiLogElements.Value) LogLargeElements(c);
             }
-            HideListed();
+            long ht = Perf.Now(); HideListed(); Perf.Add("Border hiding", ht);
 
             // Higher sorting order = drawn on top = slightly closer to the viewer.
             _tracked.Sort((a, b) => a.Canvas.sortingOrder.CompareTo(b.Canvas.sortingOrder));
