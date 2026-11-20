@@ -70,7 +70,7 @@ Controls (Quest / Touch motion controllers)
 - Hold BOTH grips, right stick LEFT/RIGHT  laser colour
 - Hold BOTH grips, left stick LEFT/RIGHT . laser brightness
 - Hold BOTH grips, left stick UP / DOWN .. held-tool height (gamepad play)
-- Hold BOTH grips, click LEFT stick ...... hide / show the HUD
+- Hold BOTH grips, click LEFT stick ...... HUD: full / hand only / none
 - Tool upgrade / supply wall screen: left stick steps through the
   items, A selects, grips switch tabs.
 - Moon map, supply wall and upgrade matrix: point the laser at what
@@ -99,7 +99,7 @@ Controls (Xbox / PlayStation controller)
 - Hold LB + RB, D-pad RIGHT / LEFT ....... raise / lower the held tool
   (5 cm per press, saved automatically)
 - Hold LB + RB and press X / Y ........... laser on/off / laser colour
-- Hold LB + RB, click LEFT stick ......... hide / show the HUD
+- Hold LB + RB, click LEFT stick ......... HUD: full / hand only / none
 Keyboard: F9 recenter, F11 / F10 view up / down.
 
 Motion blur, the screen vignette and the brush reticle are switched off
@@ -112,7 +112,7 @@ Settings live in BepInEx\config\claude.moonxrstarter.cfg in the game
 folder (edit with the game closed): menu panel distance /
 size / height, wrist HUD (Hand = Left, Right or Off; Width; Height Above
 Hand), compass / tool belt size and position (Compass Size, Compass Raise,
-Tool Belt Size, Tool Belt Lower), Hide HUD, Main Menu Distance, Map Width,
+Tool Belt Size, Tool Belt Lower), HUD Mode, Main Menu Distance, Map Width,
 Teleport Panel Size, Tools Screen Width, Full View Loading Screens,
 Loading Logo Size, Studio Intro Lower, Thumb Rest D-pad, field
 manual size, laser colour / brightness, and the height offsets above.

@@ -136,11 +136,22 @@ namespace MoonXrStarter
             catch { }
         }
 
+        // HUD modes: Full -> Hand Only -> None -> Full. Hand Only is skipped when the hand HUD is off
+        // (there would be nothing left to show).
         internal static void ToggleHud()
         {
-            Plugin.HideHud.Value = !Plugin.HideHud.Value;
-            Plugin.L.LogInfo("HUD: " + (Plugin.HideHud.Value ? "hidden" : "shown"));
+            string m = Plugin.HudMode.Value;
+            bool handOn = !string.Equals(Plugin.HandHud.Value, "Off", StringComparison.OrdinalIgnoreCase);
+            if (m == "Full") m = handOn ? "Hand Only" : "None";
+            else if (m == "Hand Only") m = "None";
+            else m = "Full";
+            Plugin.HudMode.Value = m;
+            Plugin.L.LogInfo("HUD: " + m);
         }
+        /// <summary>Nothing shown, wrist HUD included.</summary>
+        internal static bool HudAllHidden => Plugin.HudMode.Value == "None";
+        /// <summary>The HUD in front of you (tool belt, compass) is hidden; the wrist HUD may still show.</summary>
+        internal static bool HudMainHidden => Plugin.HudMode.Value != "Full";
 
         private static string _handRaw;
         private static readonly HashSet<string> _handNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -381,7 +392,7 @@ namespace MoonXrStarter
                 if (tr.parent != null) tr.SetParent(null, true);
                 if (t.OnHand && handOk)
                 {
-                    float hs = (Plugin.HideHud.Value ? 0f : Plugin.HandHudWidth.Value) * t.BaseScale;
+                    float hs = (HudAllHidden ? 0f : Plugin.HandHudWidth.Value) * t.BaseScale;
                     tr.SetPositionAndRotation(handPanel - handFwd * (t.Rank * 0.0005f), handFacing);
                     tr.localScale = new Vector3(hs, hs, hs);
                     continue;
@@ -439,7 +450,7 @@ namespace MoonXrStarter
                     extra = fwd * (md - dist);
                     // just moved back (same physical size, so it looks further away)
                 }
-                if (Plugin.HideHud.Value && IsHudScreen(t.Name)) w = 0f;   // hidden: shrink to nothing
+                if ((HudAllHidden || (HudMainHidden && handOk)) && IsHudScreen(t.Name)) w = 0f;   // hidden: shrink to nothing
                 float s = w * t.BaseScale;
                 tr.SetPositionAndRotation(_smoothPos + extra - fwd * (t.Rank * 0.002f), _smoothRot);
                 tr.localScale = new Vector3(s, s, s);

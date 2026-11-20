@@ -18,7 +18,7 @@ Play **Moon Sweepers** (Steam) in PC VR with head tracking and motion controls.
 - **Full-view loading screens:** loading, teleport and studio intro screens fill your view instead of floating in a window
 - **Wrist HUD:** dust/inventory, money and notices sit on your left wrist; the tool belt stays at the bottom of your view and the compass at the top
 - Menus float in front of you (main and pause menus further back); the field manual and the new-hire contract display properly
-- HUD can be hidden completely; the screen shading, vignette, motion blur and brush reticle are removed for comfort
+- HUD modes: full, wrist only, or none; the screen shading, vignette, motion blur and brush reticle are removed for comfort
 - Works anywhere on the Moon, including the far side
 - Xbox / PlayStation controllers also work, at the same time
 - **Thumb-rest D-pad:** rest your right thumb on the thumb rest and the left stick works as the D-pad
@@ -84,7 +84,7 @@ Then: **start SteamVR first**, then launch Moon Sweepers from Steam. The first l
 | Both grips + right stick left / right | Laser colour (yellow, blue, red, green, white) |
 | Both grips + left stick left / right | Laser brightness |
 | Both grips + left stick up / down | Held-tool height (gamepad play) |
-| Both grips + click left stick | Hide / show the HUD |
+| Both grips + click left stick | HUD: full → hand only → none |
 
 On the tool upgrade / supply wall screen the left stick steps through items.
 
@@ -103,7 +103,7 @@ In the **build menu**, point at a card and pull the **right trigger** to choose 
 | LB + RB + D-pad right / left | Tool height |
 | LB + RB + X | Laser on / off |
 | LB + RB + Y | Laser colour |
-| LB + RB + click left stick | Hide / show the HUD |
+| LB + RB + click left stick | HUD: full → hand only → none |
 
 Keyboard: F9 recenter, F11 / F10 view height.
 
@@ -130,7 +130,7 @@ Keyboard: F9 recenter, F11 / F10 view height.
 | `[VR UI]` | Tools Screen Width | Size of the supply wall and upgrade matrix screens |
 | `[VR UI]` | Full View Loading Screens, Loading Logo Size, Studio Intro Lower | Full-view loading screens, their logo size, and the intro's height |
 | `[VR UI]` | Studio Intro Logo Size, Studio Intro Speed | Size of the developer logo on the intro, and how fast the intro plays |
-| `[VR UI]` | Hide HUD | Hide the HUD (also toggled in game) |
+| `[VR UI]` | HUD Mode | `Full`, `Hand Only` (just the wrist HUD) or `None` (also stepped through in game) |
 | `[VR UI]` | Field Manual Width, Field Manual Zoom Out, Field Manual Face On | Field manual panel |
 | `[Comfort]` | Disable Motion Blur, Disable Vignette | Comfort tweaks |
 | `[Comfort]` | Hide Broken Pink Objects | Hide objects the game can't draw in VR (they show as pink boxes) |
