@@ -172,7 +172,7 @@ namespace MoonXrStarter
             AddComponent<XrStarterBehaviour>();
             AddComponent<UiToWorld>();
             AddComponent<HeadTracking>();
-            L.LogInfo($"Moon XR Starter {Info.Metadata.Version} loaded from {Info.Location}; will start XR shortly after boot");
+            L.LogInfo($"Moon XR Starter {Version} loaded from {typeof(Plugin).Assembly.Location}; will start XR shortly after boot");
             UpdateCheck.Start();
         }
     }
