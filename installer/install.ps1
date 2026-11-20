@@ -362,6 +362,16 @@ try {
     # --- 4. the VR mod itself
     Step '4/4  Moon Sweepers VR plugin'
     $pluginDir = Join-Path $game 'BepInEx\plugins\MoonXrStarter'
+    # Older copies of the plugin anywhere else under plugins (e.g. dropped in by hand) would make
+    # BepInEx load one of them instead of this one: rename them so they're ignored.
+    $stray = Get-ChildItem -LiteralPath (Join-Path $game 'BepInEx\plugins') -Recurse -File -Filter 'MoonXrStarter.dll' -ErrorAction SilentlyContinue |
+             Where-Object { $_.DirectoryName -ne $pluginDir }
+    foreach ($f in $stray) {
+        $old = $f.FullName + '.old'
+        if (Test-Path -LiteralPath $old) { Remove-Item -LiteralPath $old -Force }
+        Rename-Item -LiteralPath $f.FullName -NewName 'MoonXrStarter.dll.old' -Force
+        Say "Disabled an old copy of the VR plugin: $($f.FullName)" 'Yellow'
+    }
     New-Item -ItemType Directory -Force -Path $pluginDir | Out-Null
     Copy-Item -Path (Join-Path $ModFiles 'BepInEx\plugins\MoonXrStarter\*') -Destination $pluginDir -Recurse -Force
 

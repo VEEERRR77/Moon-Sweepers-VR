@@ -13,7 +13,7 @@ using UnityEngine;
 
 namespace MoonXrStarter
 {
-    [BepInPlugin("claude.moonxrstarter", "Moon XR Starter", "1.0.0")]
+    [BepInPlugin("claude.moonxrstarter", "Moon XR Starter", "1.5.3")]
     public class Plugin : BasePlugin
     {
         internal static ManualLogSource L;
@@ -168,7 +168,7 @@ namespace MoonXrStarter
             AddComponent<XrStarterBehaviour>();
             AddComponent<UiToWorld>();
             AddComponent<HeadTracking>();
-            L.LogInfo("Moon XR Starter loaded; will start XR shortly after boot");
+            L.LogInfo($"Moon XR Starter {Info.Metadata.Version} loaded from {Info.Location}; will start XR shortly after boot");
         }
     }
 
