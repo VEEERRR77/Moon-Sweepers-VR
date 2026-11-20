@@ -171,6 +171,8 @@ namespace MoonXrStarter
         internal static bool RenderHookActive;
         /// <summary>True while the game's main menu is on screen.</summary>
         internal static bool MainMenuShowing;
+        private static int _hideTrackedCount = -1;
+        private static float _nextHide;
         private float _nextScan;
         private bool _loggedNoCamera;
 
@@ -239,7 +241,14 @@ namespace MoonXrStarter
                 HeadTracking.NoteCanvas(c);
                 if (Plugin.UiLogElements.Value) LogLargeElements(c);
             }
-            long ht = Perf.Now(); HideListed(); Perf.Add("Border hiding", ht);
+            // Border hiding walks every piece of every menu: only needed when a new menu turns up,
+            // otherwise a check every 5 s is plenty (once a second cost a dropped frame or two).
+            if (_tracked.Count != _hideTrackedCount || Time.unscaledTime >= _nextHide)
+            {
+                _hideTrackedCount = _tracked.Count;
+                _nextHide = Time.unscaledTime + 5f;
+                long ht = Perf.Now(); HideListed(); Perf.Add("Border hiding", ht);
+            }
 
             // Higher sorting order = drawn on top = slightly closer to the viewer.
             _tracked.Sort((a, b) => a.Canvas.sortingOrder.CompareTo(b.Canvas.sortingOrder));

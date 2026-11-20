@@ -86,7 +86,7 @@ namespace MoonXrStarter
             ChessLightOdd = Config.Bind("Chess VR", "Flip Move Dot Colours", false, "Move dots are drawn black on the light squares so you can see them. If they come out black on the dark squares instead, set this to true.");
             ChessLean = Config.Bind("Chess VR", "Lean Toward Table", 0.1f, "Lean this many metres toward the table from the seat. 0 = exactly above the seat.");
             CheckForUpdates = Config.Bind("Updates", "Check For Updates", true, "At start-up, check GitHub for a newer Moon Sweepers VR release and show a notice above the main menu if there is one. Nothing is downloaded or installed.");
-            PerfLog = Config.Bind("Diagnostics", "Performance Log", true, "Log how long the mod's own work takes, any slow pieces, and frames under 20 fps (to find stutters). Only writes to the log.");
+            PerfLog = Config.Bind("Diagnostics", "Performance Log", false, "Log how long the mod's own work takes, any slow pieces, and frames under 20 fps (to find stutters). Only writes to the log.");
             MinigameDiagnostics = Config.Bind("Diagnostics", "Table Camera Probe", false, "Log camera poses and nearby named chess/air-hockey objects about once per second. Disable after testing.");
             HeadTrackingEnabled = Config.Bind("Head Tracking", "Enabled", true, "Apply headset rotation/position to the game camera.");
             PositionTracking = Config.Bind("Head Tracking", "Position Tracking", true, "Also apply head position (lean). Turn off for rotation only.");

@@ -79,12 +79,16 @@ Controls (Quest / Touch motion controllers)
 - Build menu: point at a card and pull the RIGHT TRIGGER to choose it.
   The piece then follows your right hand along the ground (conveyor
   ends too); confirm as normal.
+- Garage menu: point the laser at a card, row, tab or button and
+  pull the RIGHT TRIGGER to press it.
 - Chess: you sit in the chair you walked up to. Point the laser at a
   piece and pull the RIGHT TRIGGER to pick it up, then point at a
   square and pull it again to move. Move dots are black on light
   squares.
 - Air hockey: you get a view from your end of the table and the laser
   switches off.
+- A notice appears above the main menu when a newer version of the
+  mod is available (turn off: Check For Updates under [Updates]).
 - Coffee: the mug sits in your right hand; the laser hides while you
   hold it and comes back afterwards.
 

@@ -12,6 +12,9 @@ Play **Moon Sweepers** (Steam) in PC VR with head tracking and motion controls.
 - **Moon map with the laser:** point at the map to move its cursor and press A to select; the station teleport buttons work too. The laser turns bright yellow on the map and switches itself on while the map is open
 - **Supply wall and upgrade matrix with the laser:** point at an item or upgrade to select it, press A to use it
 - **Building with your hand:** point at a card in the build menu and pull the right trigger to choose it; the piece then follows your right hand across the ground, and a conveyor's far end follows your hand too
+- **Garage menu with the laser:** point at a vehicle, fleet row, upgrade, tab or button and pull the right trigger
+- **Brushes and hammer in your hand:** brushes sit close and low when you're not sweeping (sweeping on the floor is unchanged); the hammer sits in your hand
+- **Update check:** a notice above the main menu when a newer version of the mod is out
 - **Coffee in your hand:** the mug sits in your right hand when you pick up a coffee, and the laser hides until you're done
 - **Air hockey and chess in VR:** sit down at the air hockey table and you get a proper view from your end of the table; at the chess table you're seated in the chair you walked up to
 - **Chess with the laser:** point at a piece or square and pull the right trigger to pick it up or move it; move dots show black on light squares so you can see them
@@ -92,6 +95,8 @@ On the **moon map**, **supply wall** and **upgrade matrix**, point the laser at 
 
 At the **chess table**, point the laser at a piece and pull the **right trigger** to pick it up, then point at a square and pull it again to move. At the **air hockey table** the laser switches off.
 
+In the **garage menu**, point the laser at a card, row, tab or button and pull the **right trigger** to press it.
+
 In the **build menu**, point at a card and pull the **right trigger** to choose it. While placing, the piece (or the end of a conveyor) follows where your right hand points; confirm as normal.
 
 **Xbox / PlayStation controller**
@@ -127,11 +132,15 @@ Keyboard: F9 recenter, F11 / F10 view height.
 | `[VR UI]` | Main Menu Distance | How far back the main and pause menus sit |
 | `[VR UI]` | Compass Size / Raise, Tool Belt Size / Lower | Size and position of the compass and tool belt |
 | `[VR UI]` | Map Width, Teleport Panel Size | Moon map size; optionally show the teleport list as its own bigger panel |
-| `[VR UI]` | Tools Screen Width | Size of the supply wall and upgrade matrix screens |
+| `[VR UI]` | Tools Screen Width | Size of the supply wall, upgrade matrix and garage screens |
+| `[VR UI]` | Build Menu Width | Size of the build menu |
 | `[VR UI]` | Full View Loading Screens, Loading Logo Size, Studio Intro Lower | Full-view loading screens, their logo size, and the intro's height |
 | `[VR UI]` | Studio Intro Logo Size, Studio Intro Speed | Size of the developer logo on the intro, and how fast the intro plays |
 | `[VR UI]` | HUD Mode | `Full`, `Hand Only` (just the wrist HUD) or `None` (also stepped through in game) |
 | `[VR UI]` | Field Manual Width, Field Manual Zoom Out, Field Manual Face On | Field manual panel |
+| `[Motion Controls]` | Brush Pull In, Brush Lower, Brush Closer To Body, Brush Offset Fade | Where a held brush sits when you're not sweeping |
+| `[Motion Controls]` | Hammer Offset X/Y/Z | Nudge the hammer in your hand |
+| `[Diagnostics]` | Performance Log | Log the mod's own timings and slow frames (for tracking down stutters) |
 | `[Updates]` | Check For Updates | Check GitHub for a newer version at start-up and show a notice above the main menu |
 | `[Comfort]` | Disable Motion Blur, Disable Vignette | Comfort tweaks |
 | `[Comfort]` | Hide Broken Pink Objects | Hide objects the game can't draw in VR (they show as pink boxes) |
