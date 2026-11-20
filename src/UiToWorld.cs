@@ -437,7 +437,7 @@ namespace MoonXrStarter
                 else if (t.Name == "Supply wall screen") w = Plugin.ToolsScreenWidth.Value;
                 else if (t.Name == "Upgrades" || t.Name == "Construction HUD" || t.Name == "Garage menu")
                 {
-                    w = Plugin.ToolsScreenWidth.Value;
+                    w = t.Name == "Construction HUD" ? Plugin.BuildMenuWidth.Value : Plugin.ToolsScreenWidth.Value;
                     extra = fwd * 0.5f;   // half a metre further back than the other menus
                 }
                 else if (t.Name == "Region scanner HUD")

@@ -1,6 +1,5 @@
-// Laser pointing for the garage menu (vehicles, fleet and upgrades pages): the game's garage menu
-// already works with a mouse, so the right-hand laser drives a virtual mouse over it and the right
-// trigger is the mouse button - point at a card, row, tab or button and pull the trigger.
+// Laser pointing for the garage menu (vehicles, fleet and upgrades pages): point the right-hand
+// laser at a card, row, tab or button and pull the right trigger to press it.
 using System;
 using System.Reflection;
 using HarmonyLib;
@@ -16,27 +15,9 @@ namespace MoonXrStarter
         /// <summary>True while the garage menu is open (with motion controls on).</summary>
         internal static bool Open => Time.frameCount - _openFrame <= 2;
         private static RectTransform _panel;
-        private static Vector2 _mousePos;
-        private static bool _mouseUsed, _loggedErr, _loggedMouse;
+        private static bool _loggedErr;
         private static int _clickLogs;
         private static bool _wasDown;
-        private static Canvas _canvas; private static Camera _oldCam;
-        private static Camera _aimCam;
-
-        // A camera that never draws anything: only used to aim the menu's clicks along the laser.
-        private static Camera AimCamera()
-        {
-            if (_aimCam != null) return _aimCam;
-            var go = new GameObject("Moon VR laser aim camera");
-            UnityEngine.Object.DontDestroyOnLoad(go);
-            _aimCam = go.AddComponent<Camera>();
-            _aimCam.enabled = false;
-            _aimCam.cullingMask = 0;
-            _aimCam.fieldOfView = 60f;
-            _aimCam.nearClipPlane = 0.01f;
-            return _aimCam;
-        }
-
         public static void Install(Harmony h)
         {
             try
@@ -90,47 +71,36 @@ namespace MoonXrStarter
             {
                 bool open = __instance != null && Plugin.MotionControlsEnabled.Value
                             && _isOpen?.GetValue(__instance) is bool o && o;
-                if (!open)
-                {
-                    // Menu closed: let go of the virtual mouse button once.
-                    if (_mouseUsed && Time.frameCount - _openFrame > 2) { _mouseUsed = false; _wasDown = false; VirtualMouse.Send(_mousePos, false); }
-                    if (_canvas != null && Time.frameCount - _openFrame > 2)
-                    {
-                        try { _canvas.worldCamera = _oldCam != null ? _oldCam : Camera.main; } catch { }
-                        _canvas = null; _oldCam = null;
-                    }
-                    return;
-                }
+                if (!open) { _wasDown = false; return; }
                 _openFrame = Time.frameCount;
                 _panel = PanelOf(__instance);
                 bool down = MotionControls.RawRightTrigger > 0.6f;
-                var canvas = _panel != null ? _panel.GetComponent<Canvas>() : null;
-                if (canvas == null) return;
-                // The menu floats in front of your headset, which the game's own camera may not even
-                // see, so screen positions from it miss. Instead the menu's event camera becomes a
-                // (never-rendering) camera sitting on the laser: the mouse stays in the middle of the
-                // screen, and the middle of that camera's view is exactly where the laser points.
-                if (MotionControls.TryGetHandAim(out var hp, out var hr))
-                {
-                    var cam = AimCamera();
-                    cam.transform.SetPositionAndRotation(hp, hr);
-                    if (canvas.worldCamera == null || canvas.worldCamera.Pointer != cam.Pointer)
-                    {
-                        _canvas = canvas; _oldCam = canvas.worldCamera;
-                        canvas.worldCamera = cam;
-                    }
-                    _mousePos = new Vector2(Screen.width * 0.5f, Screen.height * 0.5f);
-                    if (!_loggedMouse) { _loggedMouse = true; Plugin.L.LogInfo("Garage: menu clicks follow the laser"); }
-                }
-                else if (!_mouseUsed) return;
-                VirtualMouse.Send(_mousePos, down);
-                _mouseUsed = true;
-                if (down && !_wasDown && _clickLogs < 10)
-                {
-                    _clickLogs++;
-                    Plugin.L.LogInfo($"Garage: right trigger click (laser on the menu {Hit(hp, hr * Vector3.forward, out _, out _)})");
-                }
+                bool press = down && !_wasDown;
                 _wasDown = down;
+                if (!press) return;
+                if (!MotionControls.TryGetHandAim(out var hp, out var hr)) return;
+                if (!Hit(hp, hr * Vector3.forward, out var pt, out _)) return;
+                // Press the button under the laser ourselves: the game's menu is made of ordinary UI
+                // buttons, but its mouse handling doesn't work with the menu floating in VR.
+                UnityEngine.UI.Button best = null; float bestArea = float.MaxValue;
+                foreach (var b in _panel.GetComponentsInChildren<UnityEngine.UI.Button>(false))
+                {
+                    if (b == null || !b.isActiveAndEnabled || !b.interactable) continue;
+                    var rt = b.transform.TryCast<RectTransform>();
+                    if (rt == null) continue;
+                    Vector3 l = rt.InverseTransformPoint(pt);
+                    var r = rt.rect;
+                    if (!r.Contains(new Vector2(l.x, l.y))) continue;
+                    float area = r.width * r.height;   // the smallest one is the one on top (a card's button over its panel)
+                    if (area < bestArea) { bestArea = area; best = b; }
+                }
+                if (best == null)
+                {
+                    if (_clickLogs < 10) { _clickLogs++; Plugin.L.LogInfo("Garage: right trigger, but no button under the laser"); }
+                    return;
+                }
+                if (_clickLogs < 20) { _clickLogs++; Plugin.L.LogInfo($"Garage: right trigger presses '{best.gameObject.name}'"); }
+                best.onClick.Invoke();
             }
             catch (Exception e)
             {
