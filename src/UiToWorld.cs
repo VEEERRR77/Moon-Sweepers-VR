@@ -435,7 +435,7 @@ namespace MoonXrStarter
                 if (t.Name == "How to play") w = Plugin.ManualWidth.Value;
                 else if (t.Name == MapFix.CanvasName) w = Plugin.MapWidth.Value;
                 else if (t.Name == "Supply wall screen") w = Plugin.ToolsScreenWidth.Value;
-                else if (t.Name == "Upgrades")
+                else if (t.Name == "Upgrades" || t.Name == "Construction HUD" || t.Name == "Garage menu")
                 {
                     w = Plugin.ToolsScreenWidth.Value;
                     extra = fwd * 0.5f;   // half a metre further back than the other menus
