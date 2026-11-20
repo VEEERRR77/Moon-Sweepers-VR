@@ -130,6 +130,7 @@ namespace MoonXrStarter
                 Vector3 p = Vector3.zero; Quaternion r = Quaternion.identity;
                 bool want = Plugin.LaserPointer.Value
                             && !SuppressForCoffee
+                            && !HeadTracking.HockeyViewActive   // not needed at the air hockey table
                             && MotionControls.TryGetHandAim(out p, out r)
                             && !MotionControls.SweepHeld();
                 if (!want || !Ensure()) { Show(false, false); return; }
@@ -146,7 +147,7 @@ namespace MoonXrStarter
                     end = info.point;
                     hit = true;
                 }
-                if ((MapFix.TryClip(p, dir, out float md) || WallFix.TryClip(p, dir, out md) || BuildFix.TryClip(p, dir, out md)) && md < len)
+                if ((MapFix.TryClip(p, dir, out float md) || WallFix.TryClip(p, dir, out md) || BuildFix.TryClip(p, dir, out md) || ChessPointer.TryClip(p, dir, out md)) && md < len)
                 {
                     len = Mathf.Max(0.01f, md - 0.01f); end = p + dir * len; hit = true;   // stop just in front of the map panel
                 }
@@ -229,7 +230,7 @@ namespace MoonXrStarter
         private static bool _loggedDimErr, _loggedTint;
 
         // Shader.PropertyToID(string) is broken under this loader, so call its raw version.
-        private static int PropertyId(string name)
+        internal static int PropertyId(string name)
         {
             if (_propertyToId == null)
                 _propertyToId = typeof(Shader).GetMethod("PropertyToID_Injected",

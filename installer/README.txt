@@ -79,6 +79,12 @@ Controls (Quest / Touch motion controllers)
 - Build menu: point at a card and pull the RIGHT TRIGGER to choose it.
   The piece then follows your right hand along the ground (conveyor
   ends too); confirm as normal.
+- Chess: you sit in the chair you walked up to. Point the laser at a
+  piece and pull the RIGHT TRIGGER to pick it up, then point at a
+  square and pull it again to move. Move dots are black on light
+  squares.
+- Air hockey: you get a view from your end of the table and the laser
+  switches off.
 - Coffee: the mug sits in your right hand; the laser hides while you
   hold it and comes back afterwards.
 

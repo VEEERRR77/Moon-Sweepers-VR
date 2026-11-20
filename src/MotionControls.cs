@@ -88,6 +88,7 @@ namespace MoonXrStarter
                 MapFix.Install(h);
                 WallFix.Install(h);
                 BuildFix.Install(h);
+                ChessPointer.Install(h);
 
                 // The coffee mug is shown relative to the (screen-space) game camera, so in VR it
                 // floats away from you. Put it in the right hand instead, after the game positioned it.
@@ -217,6 +218,12 @@ namespace MoonXrStarter
                     if (held && !_buildTrigHeld && _buildTrigLogs++ < 10)
                         Plugin.L.LogInfo($"Build: right trigger in menu (pointing at a card {BuildFix.Hovering}, sent A {inject})");
                     _buildTrigHeld = held;
+                    _rTrigger = 0f;
+                }
+                // Chess: the right trigger clicks the virtual mouse (at the square the laser points
+                // at, see ChessPointer), and doesn't sweep.
+                if (HeadTracking.ChessActive)
+                {
                     _rTrigger = 0f;
                 }
                 // Right thumb on the thumb rest: the left stick becomes the D-pad (like Quest games).
@@ -470,6 +477,9 @@ namespace MoonXrStarter
             {
                 _swapped = null;
                 if (!Plugin.MotionControlsEnabled.Value) return;
+                // At the chess / air hockey table the game drives its own camera; moving it to the
+                // hand there feeds back into the game's camera and flips the view.
+                if (HeadTracking.ViewOverrideActive) return;
                 Poll();
                 if (!_rightOk) return;
                 Vector3 wp; Quaternion wr;

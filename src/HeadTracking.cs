@@ -25,7 +25,7 @@ namespace MoonXrStarter
 
         private static readonly List<Saved> SavedPoses = new List<Saved>();
 
-        private struct SavedChild { public Transform T; public Vector3 LocalPos; public Quaternion LocalRot; public bool Rot; }
+        private struct SavedChild { public Transform T; public Vector3 LocalPos; public Quaternion LocalRot; public bool Rot; public Vector3 LocalScale; public bool Scale; }
         private static readonly List<SavedChild> SavedChildren = new List<SavedChild>();
         private static bool _loggedHierarchy;
         private static int _lastUiFrame = -1;
@@ -97,9 +97,31 @@ namespace MoonXrStarter
         {
             for (int i = SavedChildren.Count - 1; i >= 0; i--)
             {
-                try { var sv = SavedChildren[i]; if (sv.T != null) { sv.T.localPosition = sv.LocalPos; if (sv.Rot) sv.T.localRotation = sv.LocalRot; } } catch { }
+                try { var sv = SavedChildren[i]; if (sv.T != null) { sv.T.localPosition = sv.LocalPos; if (sv.Rot) sv.T.localRotation = sv.LocalRot; if (sv.Scale) sv.T.localScale = sv.LocalScale; } } catch { }
             }
             SavedChildren.Clear();
+        }
+
+        // Hide the game camera's held items (brush etc.) for this frame by zeroing their scale;
+        // RestoreTools puts the scale back after rendering. Called after OffsetTools so the two
+        // don't fight over the same items.
+        private static void HideHeldTools(Transform vrCam)
+        {
+            try
+            {
+                var root = GameCameraRoot(vrCam);
+                for (int i = 0; i < root.childCount; i++)
+                {
+                    var c = root.GetChild(i);
+                    if (c == null) continue;
+                    if (IsAncestorOf(c, vrCam)) continue; // UUVR's camera rig
+                    try { if (c.GetComponent<Camera>() != null) continue; } catch { }
+                    var ls = c.localScale;
+                    SavedChildren.Add(new SavedChild { T = c, LocalScale = ls, Scale = true });
+                    c.localScale = Vector3.zero;
+                }
+            }
+            catch { }
         }
         private static bool _calibrated;
         private static float _calibYaw;
@@ -273,6 +295,10 @@ namespace MoonXrStarter
         }
 
         // Convert a pose from headset tracking space into the game world (same mapping as the head).
+        private static int _viewOverrideFrame = -100;
+        internal static bool ViewOverrideActive => Time.frameCount - _viewOverrideFrame <= 2;
+        private static Vector3 _viewOverridePos; private static Quaternion _viewOverrideRot;
+
         internal static bool TrackingToWorld(Vector3 p, Quaternion r, out Vector3 wp, out Quaternion wr)
         {
             wp = default; wr = Quaternion.identity;
@@ -281,8 +307,12 @@ namespace MoonXrStarter
             if (main == null) return false;
             var bt = main.transform;
             var yawFix = Quaternion.Euler(0f, -_calibYaw, 0f);
-            wp = bt.position + bt.rotation * (yawFix * (p - _calibPos)) + WorldUp(bt.position) * Plugin.HeadHeightOffset.Value;
-            wr = bt.rotation * (yawFix * r);
+            // While a table view (chess / air hockey) has moved your view, hands and the laser
+            // follow that view, not the game's own camera.
+            Vector3 bp = bt.position; Quaternion br = bt.rotation;
+            if (Time.frameCount - _viewOverrideFrame <= 2) { bp = _viewOverridePos; br = _viewOverrideRot; }
+            wp = bp + br * (yawFix * (p - _calibPos)) + WorldUp(bp) * Plugin.HeadHeightOffset.Value;
+            wr = br * (yawFix * r);
             return true;
         }
 
@@ -336,6 +366,439 @@ namespace MoonXrStarter
 
         internal static void Recenter() => _calibrated = false;
 
+        // Diagnostic-only logging. Never changes game transforms or player inputs.
+        // Sparse snapshots avoid filling LogOutput with frame-by-frame spam.
+        private static float _nextMiniGameProbe;
+        private static float _nextObjectsProbe;
+        private static void ProbeMinigame(Camera cam, Vector3 gamePos, Quaternion gameRot,
+                                          Vector3 headLocalPos, Quaternion headLocalRot)
+        {
+            if (!Plugin.MinigameDiagnostics.Value) return;
+            float now = Time.unscaledTime;
+            if (now < _nextMiniGameProbe) return;
+            _nextMiniGameProbe = now + 1f;
+            try
+            {
+                Transform root = GameCameraRoot(cam.transform);
+                Vector3 gameAngles = gameRot.eulerAngles;
+                Vector3 headsetAngles = headLocalRot.eulerAngles;
+                Plugin.L.LogInfo($"[TableProbe] camera={cam.name} root={root.name} " +
+                    $"gamePos={gamePos.ToString("F3")} gameEuler={gameAngles.ToString("F1")} " +
+                    $"headLocalPos={headLocalPos.ToString("F3")} headLocalEuler={headsetAngles.ToString("F1")} " +
+                    $"renderEuler={(gameRot * headLocalRot).eulerAngles.ToString("F1")} " +
+                    $"handValid={MotionControls.HandFrame == Time.frameCount} handPos={MotionControls.HandPos.ToString("F3")} " +
+                    $"time={now:F1}");
+                if (now >= _nextObjectsProbe)
+                {
+                    _nextObjectsProbe = now + 8f;
+                    int matches = 0;
+                    foreach (Transform t in Resources.FindObjectsOfTypeAll<Transform>())
+                    {
+                        if (t == null || t.gameObject == null || !t.gameObject.scene.IsValid()) continue;
+                        string n = t.name ?? "";
+                        if (n.IndexOf("hockey", StringComparison.OrdinalIgnoreCase) < 0 &&
+                            n.IndexOf("chess", StringComparison.OrdinalIgnoreCase) < 0 &&
+                            n.IndexOf("mallet", StringComparison.OrdinalIgnoreCase) < 0 &&
+                            n.IndexOf("paddle", StringComparison.OrdinalIgnoreCase) < 0 &&
+                            n.IndexOf("lounge", StringComparison.OrdinalIgnoreCase) < 0) continue;
+                        Plugin.L.LogInfo($"[TableProbe] object={n} parent={(t.parent != null ? t.parent.name : "none")} " +
+                            $"pos={t.position.ToString("F3")} euler={t.rotation.eulerAngles.ToString("F1")} " +
+                            $"active={t.gameObject.activeInHierarchy}");
+                        if (++matches >= 35) break;
+                    }
+                    Plugin.L.LogInfo($"[TableProbe] object scan completed; matchesLogged={matches}");
+                }
+            }
+            catch (Exception e) { Plugin.L.LogWarning("[TableProbe] scan error: " + e.Message); }
+        }
+
+        // TEST 2: do not freeze the last camera pose during the interaction transition.
+        // The original Test 1 captured an in-transition Y lower than the playing surface.
+        // Instead use the real tabletop geometry as a stable render-only viewpoint.
+        // Never modify the game's camera transform permanently, gameplay input, or mallet.
+        private static Transform _hockeyAim;
+        private static float _nextHockeySearch;
+        private static bool _hockeyWasActive;
+        private static Vector3 _hockeyAnchorPos;
+        private static Quaternion _hockeyAnchorRot;
+        private static bool _hockeyWarned;
+        private static float _hockeyLostSince = -1f;
+        private const float HockeyEndDelay = 1.0f;
+        private static string _hockeyEndName = "Air hockey | right end";
+
+        private static bool HockeyActive()
+        {
+            try
+            {
+                if (_hockeyAim == null && Time.unscaledTime >= _nextHockeySearch)
+                {
+                    // Look only at the air hockey table itself (scanning every object in the game
+                    // every couple of seconds caused big frame hitches, and SteamVR then dropped the
+                    // game's controller input).
+                    // Not found yet: look again soon (type-filtered lookups are cheap), so the first
+                    // game start doesn't show the game's own transition camera for up to 5 s.
+                    _nextHockeySearch = Time.unscaledTime + 0.5f;
+                    foreach (var o in Resources.FindObjectsOfTypeAll(Il2CppInterop.Runtime.Il2CppType.Of<MoonCleaners.MoonAirHockey>()))
+                    {
+                        var h = o.TryCast<MoonCleaners.MoonAirHockey>();
+                        if (h == null || h.gameObject == null || !h.gameObject.scene.IsValid()) continue;
+                        Transform table = h.transform;
+                        while (table != null && table.name != "Air hockey") table = table.parent;
+                        if (table == null) table = h.transform.Find("Air hockey");
+                        var t = table != null ? table.Find("Air hockey | aim") : null;
+                        if (t == null) continue;
+                        _hockeyAim = t;
+                        Plugin.L.LogInfo("[HockeyCamera] Found air hockey activation marker");
+                        break;
+                    }
+                }
+                return _hockeyAim != null && _hockeyAim.gameObject.activeInHierarchy;
+            }
+            catch (Exception e)
+            {
+                if (!_hockeyWarned) { _hockeyWarned = true; Plugin.L.LogWarning("[HockeyCamera] Marker lookup failed: " + e.Message); }
+                _hockeyAim = null;
+                return false;
+            }
+        }
+
+        // Resolve the LOCAL player's goal before overriding the render camera.
+        // Auto compares the game-controlled camera to both goal markers at entry.
+        // Each client can independently identify its own goal; manual override
+        // is available for games where both players share the same camera anchor.
+        private static bool SelectHockeyEnd(Vector3 gameCamera)
+        {
+            try
+            {
+                Transform table = _hockeyAim != null ? _hockeyAim.parent : null;
+                if (table == null) return false;
+                Transform right = table.Find("Air hockey | right end");
+                Transform left = table.Find("Air hockey | left end");
+                if (right == null || left == null) return false;
+                string selection = Plugin.HockeyPlayerEnd != null ? Plugin.HockeyPlayerEnd.Value : "Auto";
+                if (string.Equals(selection, "Right", StringComparison.OrdinalIgnoreCase))
+                    _hockeyEndName = "Air hockey | right end";
+                else if (string.Equals(selection, "Left", StringComparison.OrdinalIgnoreCase))
+                    _hockeyEndName = "Air hockey | left end";
+                else
+                {
+                    // The vanilla minigame camera is normally located outside the
+                    // player's goal. Compare horizontal positions only; camera elevation
+                    // does not help us decide which goal belongs to the player.
+                    Vector3 a = gameCamera - right.position; a.y = 0f;
+                    Vector3 b = gameCamera - left.position; b.y = 0f;
+                    _hockeyEndName = a.sqrMagnitude <= b.sqrMagnitude
+                        ? "Air hockey | right end" : "Air hockey | left end";
+                    if (Mathf.Abs(a.sqrMagnitude - b.sqrMagnitude) < 0.25f)
+                        Plugin.L.LogWarning("[HockeyCamera] Local camera is nearly equidistant from both ends; set Player End manually if the view faces the wrong way.");
+                }
+                Plugin.L.LogInfo($"[HockeyCamera] playerEnd={_hockeyEndName} selection={selection} gameCamera={gameCamera.ToString("F3")} right={right.position.ToString("F3")} left={left.position.ToString("F3")}");
+                return true;
+            }
+            catch (Exception e)
+            {
+                Plugin.L.LogWarning("[HockeyCamera] Could not select end: " + e.Message);
+                return false;
+            }
+        }
+
+        private static bool TryHockeyPose(out Vector3 position, out Quaternion rotation)
+        {
+            position = Vector3.zero;
+            rotation = Quaternion.identity;
+            try
+            {
+                Transform table = _hockeyAim != null ? _hockeyAim.parent : null;
+                if (table == null) return false;
+                Transform nearEnd = table.Find(_hockeyEndName);
+                if (nearEnd == null) return false;
+                Vector3 tableCenter = table.position;
+                Vector3 outward = nearEnd.position - tableCenter;
+                outward.y = 0f;
+                if (outward.sqrMagnitude < 0.01f) return false;
+                outward.Normalize();
+                Vector3 forward = -outward; // inward toward the opponent
+                Vector3 sideways = Vector3.Cross(Vector3.up, forward).normalized;
+                position = nearEnd.position + outward * Plugin.HockeyEndGap.Value
+                           + sideways * Plugin.HockeySideOffset.Value;
+                position.y = tableCenter.y + Plugin.HockeyEyeHeight.Value;
+                rotation = Quaternion.LookRotation(forward, Vector3.up);
+                return true;
+            }
+            catch (Exception e)
+            {
+                if (!_hockeyWarned) { _hockeyWarned = true; Plugin.L.LogWarning("[HockeyCamera] Pose lookup failed: " + e.Message); }
+                return false;
+            }
+        }
+
+        private static void UpdateHockeyView(Camera cam, Vector3 gamePos, Quaternion gameRot,
+                                             ref Vector3 renderPos, ref Quaternion renderRot)
+        {
+            if (Plugin.HockeyKeepView == null || !Plugin.HockeyKeepView.Value)
+            {
+                _hockeyWasActive = false;
+                return;
+            }
+            bool active = HockeyActive();
+            float now = Time.unscaledTime;
+            if (!active)
+            {
+                // The game's join transition briefly deactivates the aim marker; only call it
+                // ended once the marker has stayed gone for a while.
+                if (_hockeyLostSince < 0f) _hockeyLostSince = now;
+                if (now - _hockeyLostSince < HockeyEndDelay) return;
+                if (_hockeyWasActive) Plugin.L.LogInfo("[HockeyCamera] Air hockey ended; using regular camera again");
+                _hockeyWasActive = false;
+                return;
+            }
+            _hockeyLostSince = -1f;
+            if (!_hockeyWasActive)
+            {
+                if (!SelectHockeyEnd(gamePos) || !TryHockeyPose(out _hockeyAnchorPos, out _hockeyAnchorRot))
+                {
+                    if (!_hockeyWarned) { _hockeyWarned = true; Plugin.L.LogWarning("[HockeyCamera] Could not find table end; leaving camera unchanged"); }
+                    return;
+                }
+                _hockeyWasActive = true;
+                Plugin.L.LogInfo($"[HockeyCamera] START gameCamera={gamePos.ToString("F3")} " +
+                    $"tableAnchor={_hockeyAnchorPos.ToString("F3")} " +
+                    $"levelEuler={_hockeyAnchorRot.eulerAngles.ToString("F1")}");
+            }
+            // Recompute on each frame to allow live config changes and moving tables.
+            if (TryHockeyPose(out _hockeyAnchorPos, out _hockeyAnchorRot))
+            {
+                renderPos = _hockeyAnchorPos;
+                renderRot = _hockeyAnchorRot;
+            }
+        }
+
+        // CHESS: when the local player sits down to play, the game swings its camera up to a high
+        // top-down view. Keep the render camera in the chair instead. Render-only, like hockey.
+        // Activation uses the game's own "Chess HUD" canvas (the only reliable "actually playing"
+        // signal; MoonLoungeSpot.Seated is true even when nobody is sitting there), plus a chess
+        // table near where the player was standing just before the HUD appeared.
+        private const float ChessSpotRadius = 2.5f;
+        private const float ChessTableRadius = 4f;
+        private const float ChessEndDelay = 0.5f;
+
+        private static readonly List<MoonCleaners.MoonChessTable> _chessTables = new List<MoonCleaners.MoonChessTable>();
+        private static readonly List<MoonCleaners.MoonLoungeSpot> _chessSpots = new List<MoonCleaners.MoonLoungeSpot>();
+        private static Canvas _chessHud;
+        private static float _nextChessHudSearch;
+        private static float _nextChessTableSearch;
+        private static float _nextChessSpotSearch;
+        private static bool _chessSeated;
+        private static float _chessLostSince = -1f;
+        private static Vector3 _lastFreeGamePos;
+        private static bool _haveFreeGamePos;
+        private static MoonCleaners.MoonLoungeSpot _chessSpot;
+        private static MoonCleaners.MoonChessTable _chessTable;
+        private static Vector3 _chessAnchorPos;
+        private static Quaternion _chessAnchorRot;
+        private static bool _chessWarned;
+
+        // Latest chess override state, read by Apply() after UpdateChessView/UpdateHockeyView.
+        private static bool _chessOverride;
+        /// <summary>True while the chess seated view is being applied (used by ChessPointer).</summary>
+        internal static bool ChessActive => _chessOverride;
+        internal static bool HockeyViewActive => _hockeyWasActive;
+        internal static MoonCleaners.MoonChessTable ChessTable => _chessTable;
+
+        // Is the game's chess board UI on screen? Looks only at Canvas objects, every 0.5 s at most
+        // while "Chess HUD" hasn't been found yet.
+        private static bool ChessHudActive()
+        {
+            if (_chessHud == null && Time.unscaledTime >= _nextChessHudSearch)
+            {
+                _nextChessHudSearch = Time.unscaledTime + 0.5f;
+                foreach (var o in Resources.FindObjectsOfTypeAll(Il2CppInterop.Runtime.Il2CppType.Of<Canvas>()))
+                {
+                    var c = o.TryCast<Canvas>();
+                    if (c == null || c.gameObject == null || !c.gameObject.scene.IsValid()) continue;
+                    if (!string.Equals(c.gameObject.name, "Chess HUD", StringComparison.Ordinal)) continue;
+                    _chessHud = c;
+                    Plugin.L.LogInfo("[ChessCamera] Found chess HUD canvas");
+                    break;
+                }
+            }
+            return _chessHud != null && _chessHud.gameObject != null
+                && _chessHud.gameObject.activeInHierarchy && _chessHud.enabled;
+        }
+
+        // Cheap component lookup: only the one game type, at most every 5 s when nothing is found.
+        private static void RefreshChessTables()
+        {
+            _chessTables.Clear();
+            foreach (var o in Resources.FindObjectsOfTypeAll(Il2CppInterop.Runtime.Il2CppType.Of<MoonCleaners.MoonChessTable>()))
+            {
+                var t = o.TryCast<MoonCleaners.MoonChessTable>();
+                if (t == null || t.gameObject == null || !t.gameObject.scene.IsValid()) continue;
+                _chessTables.Add(t);
+            }
+            Plugin.L.LogInfo($"[ChessCamera] Found {_chessTables.Count} chess table(s)");
+        }
+
+        // Cheap component lookup: only the one game type, so a short retry while it's missing is fine.
+        private static void RefreshChessSpots()
+        {
+            _chessSpots.Clear();
+            foreach (var o in Resources.FindObjectsOfTypeAll(Il2CppInterop.Runtime.Il2CppType.Of<MoonCleaners.MoonLoungeSpot>()))
+            {
+                var s = o.TryCast<MoonCleaners.MoonLoungeSpot>();
+                if (s == null || s.gameObject == null || !s.gameObject.scene.IsValid()) continue;
+                _chessSpots.Add(s);
+            }
+        }
+
+        private static Vector3 Horizontal(Vector3 v) { v.y = 0f; return v; }
+
+        // Nearest chess table to "at", or null when none is within ChessTableRadius.
+        private static MoonCleaners.MoonChessTable NearestChessTable(Vector3 at)
+        {
+            MoonCleaners.MoonChessTable near = null;
+            float best = ChessTableRadius * ChessTableRadius;
+            Vector3 flat = Horizontal(at);
+            for (int i = 0; i < _chessTables.Count; i++)
+            {
+                var t = _chessTables[i];
+                if (t == null || t.gameObject == null) continue;
+                float d = (flat - Horizontal(t.transform.position)).sqrMagnitude;
+                if (d > best) continue;
+                best = d; near = t;
+            }
+            return near;
+        }
+
+        // Pick the seat to use for a table, based on where the unbidden game camera was.
+        private static MoonCleaners.MoonLoungeSpot PickChessSeat(MoonCleaners.MoonChessTable table, Vector3 wasAt)
+        {
+            if (table == null) return null;
+            Vector3 flatTable = Horizontal(table.transform.position);
+            Vector3 flatWas = Horizontal(wasAt);
+            MoonCleaners.MoonLoungeSpot bestSeat = null;
+            float best = float.MaxValue;
+            for (int i = 0; i < _chessSpots.Count; i++)
+            {
+                var s = _chessSpots[i];
+                if (s == null || s.gameObject == null) continue;
+                try
+                {
+                    if ((Horizontal(s.transform.position) - flatTable).sqrMagnitude > ChessSpotRadius * ChessSpotRadius) continue;
+                    float d = (Horizontal(s.BodyPosition) - flatWas).sqrMagnitude;
+                    if (d >= best) continue;
+                    best = d; bestSeat = s;
+                }
+                catch { }
+            }
+            return bestSeat;
+        }
+
+        private static void EndChess(bool log)
+        {
+            if (log && _chessSeated) Plugin.L.LogInfo("[ChessCamera] END; using regular camera again");
+            _chessSeated = false;
+            _chessLostSince = -1f;
+            _chessSpot = null;
+            _chessTable = null;
+        }
+
+        private static void UpdateChessView(Vector3 gamePos, ref Vector3 renderPos, ref Quaternion renderRot)
+        {
+            _chessOverride = false;
+            try
+            {
+                if (Plugin.ChessSeatedView == null || !Plugin.ChessSeatedView.Value) { EndChess(false); return; }
+
+                float now = Time.unscaledTime;
+                bool hud = ChessHudActive();
+                if (!hud)
+                {
+                    // While not playing, keep remembering where the vanilla camera is, so the
+                    // seat can be chosen at the moment chess starts.
+                    _lastFreeGamePos = gamePos;
+                    _haveFreeGamePos = true;
+                    if (_chessLostSince < 0f) _chessLostSince = now;
+                    if (_chessSeated && now - _chessLostSince < ChessEndDelay)
+                    {
+                        // HUD flicker: keep the current override until it has been gone a moment.
+                    }
+                    else
+                    {
+                        EndChess(true);
+                        return;
+                    }
+                }
+                else
+                {
+                    _chessLostSince = -1f;
+                }
+
+                if ((_chessTables.Count == 0 || _nextChessTableSearch == 0f) && now >= _nextChessTableSearch)
+                {
+                    // Retry quickly while nothing is found, so the first chess game isn't late.
+                    _nextChessTableSearch = now + (_chessTables.Count == 0 ? 0.5f : 5f);
+                    RefreshChessTables();
+                }
+                if (now >= _nextChessSpotSearch)
+                {
+                    _nextChessSpotSearch = now + (_chessSpots.Count == 0 ? 0.5f : 5f);
+                    RefreshChessSpots();
+                }
+
+                if (!_chessSeated)
+                {
+                    // Only start on a fresh "the player is playing chess" edge with a table nearby.
+                    if (!hud) return;
+                    Vector3 at = _haveFreeGamePos ? _lastFreeGamePos : gamePos;
+                    MoonCleaners.MoonChessTable table = NearestChessTable(at);
+                    if (table == null) return;
+                    var seat = PickChessSeat(table, at);
+                    if (seat == null) return;
+                    _chessSeated = true;
+                    _chessSpot = seat;
+                    _chessTable = table;
+                    try
+                    {
+                        Plugin.L.LogInfo($"[ChessCamera] START seat={seat.transform.position.ToString("F3")} " +
+                            $"body={seat.BodyPosition.ToString("F3")} table={table.transform.position.ToString("F3")} " +
+                            $"wasAt={at.ToString("F3")}");
+                    }
+                    catch { }
+                }
+
+                // Seat and table stay locked until chess ends; recompute the pose each frame so
+                // live config changes apply.
+                if (!TryChessPose(out _chessAnchorPos, out _chessAnchorRot)) return;
+                renderPos = _chessAnchorPos;
+                renderRot = _chessAnchorRot;
+                _chessOverride = true;
+            }
+            catch (Exception e)
+            {
+                if (!_chessWarned) { _chessWarned = true; Plugin.L.LogWarning("[ChessCamera] error: " + e.Message); }
+                EndChess(false);
+            }
+        }
+
+        private static bool TryChessPose(out Vector3 position, out Quaternion rotation)
+        {
+            position = Vector3.zero;
+            rotation = Quaternion.identity;
+            var seat = _chessSpot;
+            var table = _chessTable;
+            if (seat == null || seat.gameObject == null || table == null || table.gameObject == null) return false;
+            Vector3 body = seat.BodyPosition;
+            position = body + Vector3.up * Plugin.ChessEyeHeight.Value;
+            Vector3 toward = Horizontal(table.transform.position - body);
+            float len = toward.magnitude;
+            if (len < 0.01f) return false;
+            toward /= len;
+            position += toward * Plugin.ChessLean.Value;
+            rotation = Quaternion.LookRotation(toward, Vector3.up);
+            return true;
+        }
+
         private static void Apply(Camera cam)
         {
             try
@@ -344,9 +807,18 @@ namespace MoonXrStarter
                 var tr = cam.transform;
                 var baseRot = tr.rotation;
                 var basePos = tr.position;
+                ProbeMinigame(cam, basePos, baseRot, hp, hr);
+                Vector3 renderPos = basePos;
+                Quaternion renderRot = baseRot;
+                UpdateHockeyView(cam, basePos, baseRot, ref renderPos, ref renderRot);
+                UpdateChessView(basePos, ref renderPos, ref renderRot);
+                if (renderPos != basePos || renderRot != baseRot)
+                { _viewOverrideFrame = Time.frameCount; _viewOverridePos = renderPos; _viewOverrideRot = renderRot; }
                 SavedPoses.Add(new Saved { TransformPtr = tr.Pointer, T = tr, Pos = basePos, Rot = baseRot });
-                tr.SetPositionAndRotation(basePos + baseRot * hp + WorldUp(basePos) * Plugin.HeadHeightOffset.Value, baseRot * hr);
+                tr.SetPositionAndRotation(renderPos + renderRot * hp + WorldUp(renderPos) * Plugin.HeadHeightOffset.Value, renderRot * hr);
                 OffsetTools(tr);
+                // A held tool (brush) dangling in front of a seated/table view looks wrong: hide it.
+                if (_hockeyWasActive || _chessOverride) HideHeldTools(tr);
                 if (!_loggedFirst) { _loggedFirst = true; Plugin.L.LogInfo($"Head tracking: applying to camera '{cam.name}'"); }
                 if (!_loggedHierarchy && Time.unscaledTime > 30f)
                 {

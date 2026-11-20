@@ -19,6 +19,16 @@ namespace MoonXrStarter
         internal static ManualLogSource L;
         internal static BepInEx.Configuration.ConfigEntry<float> UiDistance;
         internal static BepInEx.Configuration.ConfigEntry<bool> HeadTrackingEnabled;
+        internal static BepInEx.Configuration.ConfigEntry<bool> MinigameDiagnostics;
+        internal static BepInEx.Configuration.ConfigEntry<bool> HockeyKeepView;
+        internal static BepInEx.Configuration.ConfigEntry<float> HockeyEyeHeight;
+        internal static BepInEx.Configuration.ConfigEntry<float> HockeyEndGap;
+        internal static BepInEx.Configuration.ConfigEntry<float> HockeySideOffset;
+        internal static BepInEx.Configuration.ConfigEntry<string> HockeyPlayerEnd;
+        internal static BepInEx.Configuration.ConfigEntry<bool> ChessSeatedView;
+        internal static BepInEx.Configuration.ConfigEntry<float> ChessEyeHeight;
+        internal static BepInEx.Configuration.ConfigEntry<float> ChessLean;
+        internal static BepInEx.Configuration.ConfigEntry<bool> ChessLightOdd;
         internal static BepInEx.Configuration.ConfigEntry<bool> PositionTracking;
         internal static BepInEx.Configuration.ConfigEntry<float> HeadHeightOffset;
         internal static BepInEx.Configuration.ConfigEntry<float> ToolHeightOffset;
@@ -60,6 +70,16 @@ namespace MoonXrStarter
         public override void Load()
         {
             L = Log;
+            HockeyKeepView = Config.Bind("Air Hockey VR", "Keep Normal View", true, "Use an upright VR viewpoint at the local player's air hockey goal. Keeps vanilla thumbstick paddle and puck collision logic.");
+            HockeyEyeHeight = Config.Bind("Air Hockey VR", "Eye Height Above Table Base", 1.85f, "Eye anchor metres above the Air hockey parent origin (before the existing global headset height offset). Try 1.65 to 2.05 if needed.");
+            HockeyEndGap = Config.Bind("Air Hockey VR", "Distance Behind End", 0.35f, "Distance in metres behind the player's end of the table; higher moves farther away.");
+            HockeySideOffset = Config.Bind("Air Hockey VR", "Side Offset", 0f, "Offset sideways across the table in metres, relative to the goal you play from.");
+            HockeyPlayerEnd = Config.Bind("Air Hockey VR", "Player End", "Auto", "Auto picks the goal closest to the local game's camera when hockey starts. For opposite-side multiplayer or incorrect automatic selection, set Left or Right (the names are game object labels, not colors). Each player's PC can use a different setting.");
+            ChessSeatedView = Config.Bind("Chess VR", "Seated View", true, "Sit in the chair at a chess table instead of the game's high top-down camera. Off: leave the game's chess camera alone.");
+            ChessEyeHeight = Config.Bind("Chess VR", "Eye Height Above Seat", 0.75f, "Eye height above the seat, in metres (before the existing global headset height offset). Try 0.6 to 0.9.");
+            ChessLightOdd = Config.Bind("Chess VR", "Flip Move Dot Colours", false, "Move dots are drawn black on the light squares so you can see them. If they come out black on the dark squares instead, set this to true.");
+            ChessLean = Config.Bind("Chess VR", "Lean Toward Table", 0.1f, "Lean this many metres toward the table from the seat. 0 = exactly above the seat.");
+            MinigameDiagnostics = Config.Bind("Diagnostics", "Table Camera Probe", false, "Log camera poses and nearby named chess/air-hockey objects about once per second. Disable after testing.");
             HeadTrackingEnabled = Config.Bind("Head Tracking", "Enabled", true, "Apply headset rotation/position to the game camera.");
             PositionTracking = Config.Bind("Head Tracking", "Position Tracking", true, "Also apply head position (lean). Turn off for rotation only.");
             HeadHeightOffset = Config.Bind("Head Tracking", "Height Offset", -0.2f, "Raises (+) or lowers (-) your view, in metres. Adjust in-game with LB+RB + D-pad up/down, or F11/F10.");

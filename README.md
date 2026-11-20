@@ -13,6 +13,8 @@ Play **Moon Sweepers** (Steam) in PC VR with head tracking and motion controls.
 - **Supply wall and upgrade matrix with the laser:** point at an item or upgrade to select it, press A to use it
 - **Building with your hand:** point at a card in the build menu and pull the right trigger to choose it; the piece then follows your right hand across the ground, and a conveyor's far end follows your hand too
 - **Coffee in your hand:** the mug sits in your right hand when you pick up a coffee, and the laser hides until you're done
+- **Air hockey and chess in VR:** sit down at the air hockey table and you get a proper view from your end of the table; at the chess table you're seated in the chair you walked up to
+- **Chess with the laser:** point at a piece or square and pull the right trigger to pick it up or move it; move dots show black on light squares so you can see them
 - **Full-view loading screens:** loading, teleport and studio intro screens fill your view instead of floating in a window
 - **Wrist HUD:** dust/inventory, money and notices sit on your left wrist; the tool belt stays at the bottom of your view and the compass at the top
 - Menus float in front of you (main and pause menus further back); the field manual and the new-hire contract display properly
@@ -88,6 +90,8 @@ On the tool upgrade / supply wall screen the left stick steps through items.
 
 On the **moon map**, **supply wall** and **upgrade matrix**, point the laser at what you want and press **A** to select it. The laser switches on, turns bright yellow and stops on the screen while these are open.
 
+At the **chess table**, point the laser at a piece and pull the **right trigger** to pick it up, then point at a square and pull it again to move. At the **air hockey table** the laser switches off.
+
 In the **build menu**, point at a card and pull the **right trigger** to choose it. While placing, the piece (or the end of a conveyor) follows where your right hand points; confirm as normal.
 
 **Xbox / PlayStation controller**
@@ -116,6 +120,8 @@ Keyboard: F9 recenter, F11 / F10 view height.
 | `[Motion Controls]` | Build Menu Laser | Choose build menu cards by pointing + right trigger (off: left stick + trigger/A) |
 | `[Motion Controls]` | Coffee Cup In Hand, Coffee Cup Offset X/Y/Z | Hold the coffee mug in your right hand, and where it sits |
 | `[Motion Controls]` | Hide Reticle | Hide the brush reticle (cleaning still works) |
+| `[Air Hockey VR]` | Keep Normal View, Player End, Eye Height Above Table Base, Distance Behind End, Side Offset | Air hockey view: off to keep the game's camera; which end you play from (`Auto`, `Left`, `Right`) and where your eyes sit |
+| `[Chess VR]` | Seated View, Eye Height Above Seat, Lean Toward Table, Flip Move Dot Colours | Chess: sit in the chair, eye height and lean; flip which squares get black dots if your board is the other way round |
 | `[Hand HUD]` | Hand, Width, Height Above Hand | Wrist HUD on `Left`, `Right` or `Off`, its size and height |
 | `[VR UI]` | Distance, Width, Height Offset | Menu panel placement |
 | `[VR UI]` | Main Menu Distance | How far back the main and pause menus sit |
