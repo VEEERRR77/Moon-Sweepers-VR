@@ -13,9 +13,12 @@ using UnityEngine;
 
 namespace MoonXrStarter
 {
-    [BepInPlugin("claude.moonxrstarter", "Moon XR Starter", "1.5.3")]
+    [BepInPlugin("claude.moonxrstarter", "Moon XR Starter", Version)]
     public class Plugin : BasePlugin
     {
+        /// <summary>The mod's version; keep in step with the GitHub release tag (v1.5.3 etc.).</summary>
+        internal const string Version = "1.5.3";
+        internal static BepInEx.Configuration.ConfigEntry<bool> CheckForUpdates;
         internal static ManualLogSource L;
         internal static BepInEx.Configuration.ConfigEntry<float> UiDistance;
         internal static BepInEx.Configuration.ConfigEntry<bool> HeadTrackingEnabled;
@@ -80,6 +83,7 @@ namespace MoonXrStarter
             ChessEyeHeight = Config.Bind("Chess VR", "Eye Height Above Seat", 0.75f, "Eye height above the seat, in metres (before the existing global headset height offset). Try 0.6 to 0.9.");
             ChessLightOdd = Config.Bind("Chess VR", "Flip Move Dot Colours", false, "Move dots are drawn black on the light squares so you can see them. If they come out black on the dark squares instead, set this to true.");
             ChessLean = Config.Bind("Chess VR", "Lean Toward Table", 0.1f, "Lean this many metres toward the table from the seat. 0 = exactly above the seat.");
+            CheckForUpdates = Config.Bind("Updates", "Check For Updates", true, "At start-up, check GitHub for a newer Moon Sweepers VR release and show a notice above the main menu if there is one. Nothing is downloaded or installed.");
             MinigameDiagnostics = Config.Bind("Diagnostics", "Table Camera Probe", false, "Log camera poses and nearby named chess/air-hockey objects about once per second. Disable after testing.");
             HeadTrackingEnabled = Config.Bind("Head Tracking", "Enabled", true, "Apply headset rotation/position to the game camera.");
             PositionTracking = Config.Bind("Head Tracking", "Position Tracking", true, "Also apply head position (lean). Turn off for rotation only.");
@@ -169,6 +173,7 @@ namespace MoonXrStarter
             AddComponent<UiToWorld>();
             AddComponent<HeadTracking>();
             L.LogInfo($"Moon XR Starter {Info.Metadata.Version} loaded from {Info.Location}; will start XR shortly after boot");
+            UpdateCheck.Start();
         }
     }
 

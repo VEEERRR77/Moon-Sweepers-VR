@@ -188,6 +188,9 @@ namespace MoonXrStarter
                     Scan(cam);
                 }
                 Place(cam); // baseline; refined at render time by HeadTracking
+                Canvas menu = null;
+                foreach (var t in _tracked) if (t.Canvas != null && t.Name == "Main menu") { menu = t.Canvas; break; }
+                UpdateCheck.Tick(menu);
             }
             catch (Exception e)
             {

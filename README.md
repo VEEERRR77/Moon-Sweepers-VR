@@ -132,6 +132,7 @@ Keyboard: F9 recenter, F11 / F10 view height.
 | `[VR UI]` | Studio Intro Logo Size, Studio Intro Speed | Size of the developer logo on the intro, and how fast the intro plays |
 | `[VR UI]` | HUD Mode | `Full`, `Hand Only` (just the wrist HUD) or `None` (also stepped through in game) |
 | `[VR UI]` | Field Manual Width, Field Manual Zoom Out, Field Manual Face On | Field manual panel |
+| `[Updates]` | Check For Updates | Check GitHub for a newer version at start-up and show a notice above the main menu |
 | `[Comfort]` | Disable Motion Blur, Disable Vignette | Comfort tweaks |
 | `[Comfort]` | Hide Broken Pink Objects | Hide objects the game can't draw in VR (they show as pink boxes) |
 
