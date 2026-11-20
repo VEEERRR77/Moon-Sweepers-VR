@@ -219,6 +219,7 @@ namespace MoonXrStarter
                 var t = new Tracked { Canvas = c, BaseScale = 1f / Mathf.Max(1f, pixelWidth), OnHand = _handNames.Contains(c.gameObject.name) };
                 _tracked.Add(t);
                 Plugin.L.LogInfo($"UI: moved canvas '{c.gameObject.name}' (sort {c.sortingOrder}) into VR");
+                HeadTracking.NoteCanvas(c);
                 if (Plugin.UiLogElements.Value) LogLargeElements(c);
             }
             HideListed();

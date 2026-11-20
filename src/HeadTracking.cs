@@ -471,39 +471,6 @@ namespace MoonXrStarter
         private static Transform _hockeyAim;
         private static float _nextHockeySearch;
 
-        // Looking up the tables / chess screens walks every object of that type, so it's only done
-        // when it can find something new: for 15 s after you arrive somewhere new (teleport, loading
-        // a save; stations load in over a few seconds, so every 3 s in that window), and otherwise
-        // once a minute as a fallback.
-        private static Vector3 _scanStationPos = new Vector3(1e9f, 0f, 0f);
-        private static float _scanBurstUntil = -1f;
-        private static int _scanCheckFrame = -1;
-        private static bool TableScanDue(ref float next)
-        {
-            float now = Time.unscaledTime;
-            if (_scanCheckFrame != Time.frameCount)
-            {
-                _scanCheckFrame = Time.frameCount;
-                try
-                {
-                    var cam = Camera.main;
-                    if (cam != null)
-                    {
-                        var p = cam.transform.position;
-                        if ((p - _scanStationPos).sqrMagnitude > 150f * 150f)
-                        {
-                            _scanStationPos = p;
-                            _scanBurstUntil = now + 15f;
-                            _nextHockeySearch = 0f; _nextChessHudSearch = 0f; // scan straight away
-                        }
-                    }
-                }
-                catch { }
-            }
-            if (now < next) return false;
-            next = now + (now < _scanBurstUntil ? 3f : 60f);
-            return true;
-        }
 
         private static bool _hockeyWasActive;
         private static Vector3 _hockeyAnchorPos;
@@ -546,8 +513,9 @@ namespace MoonXrStarter
                 // While playing, stick with the table we're at.
                 if (_hockeyWasActive && _hockeyAim != null && _hockeyAim.gameObject.activeInHierarchy) return true;
                 float now = Time.unscaledTime;
-                if (TableScanDue(ref _nextHockeySearch))
+                if (now >= _nextHockeySearch)
                 {
+                    _nextHockeySearch = now + (_hockeyAims.Count == 0 ? 1f : 2f);
                     RefreshHockeyAims();
                 }
                 for (int i = 0; i < _hockeyAims.Count; i++)
@@ -730,25 +698,22 @@ namespace MoonXrStarter
         // of them (refreshed regularly with a typed lookup) and treat chess as on when any is shown.
         private static readonly System.Collections.Generic.List<Canvas> _chessHuds = new System.Collections.Generic.List<Canvas>();
         private static int _chessHudsLogged = -1;
+        // Called by UiToWorld when it first picks up a canvas (it already walks all canvases to move
+        // them into VR), so chess needs no scanning of its own.
+        internal static void NoteCanvas(Canvas c)
+        {
+            try
+            {
+                if (c == null || !string.Equals(c.gameObject.name, "Chess HUD", StringComparison.Ordinal)) return;
+                _chessHuds.RemoveAll(h => h == null);
+                _chessHuds.Add(c);
+                if (_chessHuds.Count != _chessHudsLogged) { _chessHudsLogged = _chessHuds.Count; Plugin.L.LogInfo($"[ChessCamera] Found {_chessHuds.Count} chess HUD canvas(es)"); }
+            }
+            catch { }
+        }
+
         private static bool ChessHudActive()
         {
-            float now = Time.unscaledTime;
-            if (TableScanDue(ref _nextChessHudSearch))
-            {
-                _chessHuds.Clear();
-                foreach (var o in Resources.FindObjectsOfTypeAll(Il2CppInterop.Runtime.Il2CppType.Of<Canvas>()))
-                {
-                    var c = o.TryCast<Canvas>();
-                    if (c == null || c.gameObject == null || !c.gameObject.scene.IsValid()) continue;
-                    if (!string.Equals(c.gameObject.name, "Chess HUD", StringComparison.Ordinal)) continue;
-                    _chessHuds.Add(c);
-                }
-                if (_chessHuds.Count != _chessHudsLogged)
-                {
-                    _chessHudsLogged = _chessHuds.Count;
-                    Plugin.L.LogInfo($"[ChessCamera] Found {_chessHuds.Count} chess HUD canvas(es)");
-                }
-            }
             for (int k = 0; k < _chessHuds.Count; k++)
             {
                 try
