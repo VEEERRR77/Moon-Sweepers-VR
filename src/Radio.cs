@@ -178,7 +178,7 @@ namespace MoonXrStarter
                     if (n > 0) buf.AddSamples(pcm, 0, n);
                     if (!started && buf.BufferedDuration.TotalSeconds > 1.0)
                     {
-                        var channel = new SampleChannel(buf, true) { Volume = Volume };
+                        var channel = new SampleChannel(buf, true) { Volume = Gain };
                         var output = new WasapiOut(NAudio.CoreAudioApi.AudioClientShareMode.Shared, 200);
                         output.Init(channel);
                         lock (_lock)
@@ -206,7 +206,7 @@ namespace MoonXrStarter
         private static void PlayWithWindows(Station st, string url, int gen)
         {
             var reader = new MediaFoundationReader(url);
-            var channel = new SampleChannel(reader, true) { Volume = Volume };
+            var channel = new SampleChannel(reader, true) { Volume = Gain };
             var output = new WasapiOut(NAudio.CoreAudioApi.AudioClientShareMode.Shared, 200);
             output.Init(channel);
             lock (_lock)
@@ -295,6 +295,16 @@ namespace MoonXrStarter
         }
 
         private static float Volume => Mathf.Clamp01(Plugin.RadioVolume.Value);
+        // Loudness isn't linear: square the slider (and cap it) so low settings are actually quiet
+        // and each step sounds like a similar change. 100% = 60% of the stream's full level.
+        private static float Gain => 0.6f * Volume * Volume;
+        private static float _appliedGain = -1f;
+        private static void ApplyGain()
+        {
+            float g = Gain;
+            if (Mathf.Abs(g - _appliedGain) < 0.0001f) return;
+            lock (_lock) { if (_channel != null) { _channel.Volume = g; _appliedGain = g; } }
+        }
 
         private static void Stop()
         {
@@ -319,7 +329,7 @@ namespace MoonXrStarter
         private static void ChangeVolume(float d)
         {
             Plugin.RadioVolume.Value = Mathf.Round(Mathf.Clamp01(Plugin.RadioVolume.Value + d) * 20f) / 20f;
-            lock (_lock) { if (_channel != null) _channel.Volume = Volume; }
+            ApplyGain();
         }
 
         internal static void ToggleShown()
@@ -546,8 +556,8 @@ namespace MoonXrStarter
             Button(View.Player, "<", new Vector2(-220f, 20f), new Vector2(150f, 90f), () => Step(-1));
             _playBtn = Button(View.Player, "Play", new Vector2(0f, 20f), new Vector2(240f, 90f), TogglePlay);
             Button(View.Player, ">", new Vector2(220f, 20f), new Vector2(150f, 90f), () => Step(1));
-            Button(View.Player, "Vol -", new Vector2(-150f, -70f), new Vector2(240f, 60f), () => ChangeVolume(-0.1f));
-            Button(View.Player, "Vol +", new Vector2(150f, -70f), new Vector2(240f, 60f), () => ChangeVolume(0.1f));
+            Button(View.Player, "Vol -", new Vector2(-150f, -70f), new Vector2(240f, 60f), () => ChangeVolume(-0.05f));
+            Button(View.Player, "Vol +", new Vector2(150f, -70f), new Vector2(240f, 60f), () => ChangeVolume(0.05f));
             Button(View.Player, "Search", new Vector2(-150f, -145f), new Vector2(240f, 60f), () => Show(View.Keyboard));
             Button(View.Player, "Save", new Vector2(150f, -145f), new Vector2(240f, 60f), SaveCurrent);
 
@@ -646,6 +656,7 @@ namespace MoonXrStarter
             if (_failed) return;
             try
             {
+                if (_wantPlaying) ApplyGain();   // picks up changes from the VR Settings panel too
                 bool show = Plugin.RadioEnabled.Value && Plugin.RadioShown.Value && Plugin.MotionControlsEnabled.Value
                             && !HeadTracking.TableSessionActive;
                 Vector3 hp = default, eye = default; Quaternion hr = Quaternion.identity;
