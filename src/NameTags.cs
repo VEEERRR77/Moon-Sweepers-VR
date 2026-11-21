@@ -98,7 +98,7 @@ namespace MoonXrStarter
                     if (!_tags.TryGetValue(key, out var tag)) _tags[key] = tag = Make(p);
 
                     bool show = false;
-                    try { show = p.gameObject.activeInHierarchy && p.Shown; } catch { }
+                    try { show = p.gameObject.activeInHierarchy; } catch { }
                     string name = null;
                     try { name = p.DisplayName; } catch { }
                     if (!show || string.IsNullOrEmpty(name)) { if (tag.Go.activeSelf) tag.Go.SetActive(false); continue; }
