@@ -124,7 +124,7 @@ Keyboard: F9 recenter, F11 / F10 view height.
 | `[Head Tracking]` | Height Offset, Tool Height Offset | View and tool height (also adjustable in game) |
 | `[Motion Controls]` | Enabled, Hand Interaction | Motion controls on/off; point-to-use on/off |
 | `[Motion Controls]` | Laser Pointer, Laser Colour, Laser Brightness, Laser Length | Laser options |
-| `[Motion Controls]` | Thumb Rest D-pad | Left stick becomes the D-pad while your right thumb is on the thumb rest |
+| `[Motion Controls]` | Thumb Rest D-pad, Thumb Rest Hold Seconds | Left stick becomes the D-pad once your right thumb has rested on the thumb rest this long |
 | `[Motion Controls]` | Build Menu Laser | Choose build menu cards by pointing + right trigger (off: left stick + trigger/A) |
 | `[Motion Controls]` | Coffee Cup In Hand, Coffee Cup Offset X/Y/Z | Hold the coffee mug in your right hand, and where it sits |
 | `[Motion Controls]` | Hide Reticle | Hide the brush reticle (cleaning still works) |
@@ -137,6 +137,7 @@ Keyboard: F9 recenter, F11 / F10 view height.
 | `[VR UI]` | Map Width, Teleport Panel Size | Moon map size; optionally show the teleport list as its own bigger panel |
 | `[VR UI]` | Tools Screen Width | Size of the supply wall, upgrade matrix and garage screens |
 | `[VR UI]` | Build Menu Width | Size of the build menu |
+| `[VR UI]` | Garage Menu Distance, Garage Menu Size | Where the garage menu appears and how big |
 | `[VR UI]` | Full View Loading Screens, Loading Logo Size, Studio Intro Lower | Full-view loading screens, their logo size, and the intro's height |
 | `[VR UI]` | Studio Intro Logo Size, Studio Intro Speed | Size of the developer logo on the intro, and how fast the intro plays |
 | `[VR UI]` | HUD Mode | `Full`, `Hand Only` (just the wrist HUD) or `None` (also stepped through in game) |

@@ -75,9 +75,6 @@ namespace MoonXrStarter
             AddToggle("Air hockey VR view", Plugin.HockeyKeepView);
             AddToggle("Chess seated view", Plugin.ChessSeatedView);
             AddToggle("Full-view loading screens", Plugin.FullViewLoading);
-            AddToggle("Hide vignette", Plugin.DisableVignette);
-            AddToggle("Disable motion blur", Plugin.DisableMotionBlur);
-            AddToggle("Hide pink broken objects", Plugin.HideBrokenPink);
             AddToggle("Check for updates", Plugin.CheckForUpdates);
             AddToggle("Performance log", Plugin.PerfLog);
         }

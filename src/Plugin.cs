@@ -17,7 +17,7 @@ namespace MoonXrStarter
     public class Plugin : BasePlugin
     {
         /// <summary>The mod's version; keep in step with the GitHub release tag (v1.5.3 etc.).</summary>
-        internal const string Version = "1.5.3";
+        internal const string Version = "1.6.0";
         internal static BepInEx.Configuration.ConfigEntry<bool> CheckForUpdates;
         internal static BepInEx.Configuration.ConfigEntry<float> BuildMenuWidth, GarageMenuDistance, GarageMenuSize;
         internal static BepInEx.Configuration.ConfigEntry<bool> PerfLog;
