@@ -171,6 +171,31 @@ namespace MoonXrStarter
         internal static bool RenderHookActive;
         /// <summary>True while the game's main menu is on screen.</summary>
         internal static bool MainMenuShowing;
+        /// <summary>The pause menu's canvas while it's on screen, else null.</summary>
+        internal static Canvas PauseCanvas;
+
+        // The pause canvas may stay switched on while hidden, so also look at its sidebar (the
+        // buttons) and any fade on it.
+        private static Transform _pauseSidebar; private static IntPtr _pauseSidebarOf;
+        private static bool PauseVisible(Canvas c)
+        {
+            if (!c.gameObject.activeInHierarchy || !c.enabled) return false;
+            var g = c.GetComponent<CanvasGroup>();
+            if (g != null && g.alpha < 0.05f) return false;
+            if (_pauseSidebarOf != c.Pointer) { _pauseSidebarOf = c.Pointer; _pauseSidebar = FindChild(c.transform, "Sidebar", 4); }
+            if (_pauseSidebar != null && !_pauseSidebar.gameObject.activeInHierarchy) return false;
+            return true;
+        }
+        private static Transform FindChild(Transform t, string name, int depth)
+        {
+            for (int i = 0; i < t.childCount; i++)
+            {
+                var ch = t.GetChild(i);
+                if (ch.name == name) return ch;
+                if (depth > 0) { var r = FindChild(ch, name, depth - 1); if (r != null) return r; }
+            }
+            return null;
+        }
         private static int _hideTrackedCount = -1;
         private static float _nextHide;
         private float _nextScan;
@@ -195,6 +220,10 @@ namespace MoonXrStarter
                 Canvas menu = null;
                 foreach (var t in _tracked) if (t.Canvas != null && t.Name == "Main menu") { menu = t.Canvas; break; }
                 try { MainMenuShowing = menu != null && menu.gameObject.activeInHierarchy; } catch { MainMenuShowing = false; }
+                Canvas pause = null;
+                foreach (var t in _tracked)
+                    if (t.Canvas != null && t.Name == "Pause menu") { try { if (PauseVisible(t.Canvas)) pause = t.Canvas; } catch { } break; }
+                PauseCanvas = pause;
                 UpdateCheck.Tick(menu);
             }
             catch (Exception e)

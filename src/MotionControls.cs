@@ -230,7 +230,7 @@ namespace MoonXrStarter
                 // Chess: the right trigger clicks the virtual mouse (at the square the laser points
                 // at, see ChessPointer), and doesn't sweep.
                 // Garage menu: the same, the trigger is the mouse click there (see GarageFix).
-                if (HeadTracking.ChessActive || GarageFix.Open || Radio.Hovering)
+                if (HeadTracking.ChessActive || GarageFix.Open || Radio.Hovering || VrMenu.Hovering)
                 {
                     _rTrigger = 0f;
                 }
