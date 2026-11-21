@@ -19,7 +19,7 @@ namespace MoonXrStarter
         /// <summary>The mod's version; keep in step with the GitHub release tag (v1.5.3 etc.).</summary>
         internal const string Version = "1.5.3";
         internal static BepInEx.Configuration.ConfigEntry<bool> CheckForUpdates;
-        internal static BepInEx.Configuration.ConfigEntry<float> BuildMenuWidth, GarageMenuDistance;
+        internal static BepInEx.Configuration.ConfigEntry<float> BuildMenuWidth, GarageMenuDistance, GarageMenuSize;
         internal static BepInEx.Configuration.ConfigEntry<bool> PerfLog;
         internal static BepInEx.Configuration.ConfigEntry<bool> RadioEnabled, RadioShown;
         internal static BepInEx.Configuration.ConfigEntry<string> RadioStations;
@@ -143,6 +143,7 @@ namespace MoonXrStarter
             if (buildVer.Value < 1) { BuildMenuLaser.Value = true; buildVer.Value = 1; }
             ToolsScreenWidth = Config.Bind("VR UI", "Tools Screen Width", 1.9f, "Width of the supply wall / tools screen and the upgrade matrix, in metres.");
             GarageMenuDistance = Config.Bind("VR UI", "Garage Menu Distance", 0.9f, "How far in front of you the garage menu appears, in metres (close, so the garage walls don't hide it).");
+            GarageMenuSize = Config.Bind("VR UI", "Garage Menu Size", 1.3f, "Size of the garage menu (1 = same apparent size as the upgrade matrix).");
             BuildMenuWidth = Config.Bind("VR UI", "Build Menu Width", 2.6f, "Width of the build menu, in metres (it sits as far back as the upgrade matrix).");
             TeleportScale = Config.Bind("VR UI", "Teleport Panel Size", 0f, "0 = the map's teleport list stays inside the map (normal). Above 0: shown as its own panel to the right of the map, this many times its normal size.");
             if (Mathf.Approximately(TeleportScale.Value, 1.6f)) TeleportScale.Value = 0f;   // old default
