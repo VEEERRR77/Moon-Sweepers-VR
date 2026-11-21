@@ -290,6 +290,7 @@ namespace MoonXrStarter
         {
             long pt = Perf.Now(); Radio.Tick(); Perf.Add("Radio", pt);
             pt = Perf.Now(); VrMenu.Tick(); Perf.Add("VR menu", pt);
+            pt = Perf.Now(); NameTags.Tick(); Perf.Add("Name tags", pt);
             pt = Perf.Now(); Laser.Tick(); Perf.Add("Laser", pt);   // after all game updates, so the beam lines up with this frame's aim
             pt = Perf.Now(); ManualView.Tick(); Perf.Add("Field manual view", pt);
             try

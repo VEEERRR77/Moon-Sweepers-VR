@@ -20,7 +20,8 @@ namespace MoonXrStarter
         internal const string Version = "1.6.1";
         internal static BepInEx.Configuration.ConfigEntry<bool> CheckForUpdates;
         internal static BepInEx.Configuration.ConfigEntry<float> BuildMenuWidth, GarageMenuDistance, GarageMenuSize;
-        internal static BepInEx.Configuration.ConfigEntry<bool> PerfLog;
+        internal static BepInEx.Configuration.ConfigEntry<bool> PerfLog, NameTagsEnabled;
+        internal static BepInEx.Configuration.ConfigEntry<float> NameTagsDistance, NameTagsSize;
         internal static BepInEx.Configuration.ConfigEntry<bool> RadioEnabled, RadioShown;
         internal static BepInEx.Configuration.ConfigEntry<string> RadioStations;
         internal static BepInEx.Configuration.ConfigEntry<int> RadioStation;
@@ -97,6 +98,9 @@ namespace MoonXrStarter
             RadioVolume = Config.Bind("Radio", "Volume", 0.5f, "Radio volume, 0 to 1 (separate from the game's own volume).");
             RadioHeight = Config.Bind("Radio", "Height Above Hand", 0.2f, "How far above your left hand the radio panel floats, in metres.");
             RadioWidth = Config.Bind("Radio", "Width", 0.3f, "Width of the radio panel, in metres.");
+            NameTagsEnabled = Config.Bind("Name Tags", "Enabled", true, "Show other players' names floating above their heads in VR (instead of the game's flat on-screen tags).");
+            NameTagsDistance = Config.Bind("Name Tags", "Max Distance", 100f, "Hide name tags of players further away than this, in metres.");
+            NameTagsSize = Config.Bind("Name Tags", "Size", 1f, "Size of the name tags (1 = normal).");
             CheckForUpdates = Config.Bind("Updates", "Check For Updates", true, "At start-up, check GitHub for a newer Moon Sweepers VR release and show a notice above the main menu if there is one. Nothing is downloaded or installed.");
             PerfLog = Config.Bind("Diagnostics", "Performance Log", false, "Log how long the mod's own work takes, any slow pieces, and frames under 20 fps (to find stutters). Only writes to the log.");
             MinigameDiagnostics = Config.Bind("Diagnostics", "Table Camera Probe", false, "Log camera poses and nearby named chess/air-hockey objects about once per second. Disable after testing.");

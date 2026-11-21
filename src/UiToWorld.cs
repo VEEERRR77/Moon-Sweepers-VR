@@ -506,6 +506,7 @@ namespace MoonXrStarter
                     // just moved back (same physical size, so it looks further away)
                 }
                 if ((HudAllHidden || (HudMainHidden && handOk)) && IsHudScreen(t.Name)) w = 0f;   // hidden: shrink to nothing
+                if (t.Name == "Crew name tags" && NameTags.On) w = 0f;   // shown in 3D above each player instead
                 float s = w * t.BaseScale;
                 tr.SetPositionAndRotation(_smoothPos + extra - fwd * (t.Rank * 0.002f), _smoothRot);
                 tr.localScale = new Vector3(s, s, s);

@@ -16,6 +16,7 @@ Play **Moon Sweepers** (Steam) in PC VR with head tracking and motion controls.
 - **Brushes and hammer in your hand:** brushes sit close and low when you're not sweeping (sweeping on the floor is unchanged); the hammer sits in your hand
 - **Internet radio on your wrist:** both grips + Y shows a radio above your left hand; point and pull the right trigger to play, change station or volume. **Search** finds stations by name or genre (on-panel keyboard), and **Save** adds one to your list
 - **VR Controls and VR Settings in the pause menu:** two buttons beside the pause menu show every VR control and let you change the main VR settings in game
+- **Name tags in 3D:** other players' names float above their heads and face you
 - **Update check:** a notice above the main menu when a newer version of the mod is out
 - **Coffee in your hand:** the mug sits in your right hand when you pick up a coffee, and the laser hides until you're done
 - **Air hockey and chess in VR:** sit down at the air hockey table and you get a proper view from your end of the table; at the chess table you're seated in the chair you walked up to
@@ -146,6 +147,7 @@ Keyboard: F9 recenter, F11 / F10 view height.
 | `[Motion Controls]` | Hammer Offset X/Y/Z | Nudge the hammer in your hand |
 | `[Diagnostics]` | Performance Log | Log the mod's own timings and slow frames (for tracking down stutters) |
 | `[Radio]` | Enabled, Stations, Volume, Height Above Hand, Width | Wrist radio: station list (`Name|URL; Name|URL`), volume and panel placement |
+| `[Name Tags]` | Enabled, Max Distance, Size | Other players' names above their heads |
 | `[Updates]` | Check For Updates | Check GitHub for a newer version at start-up and show a notice above the main menu |
 | `[Comfort]` | Disable Motion Blur, Disable Vignette | Comfort tweaks |
 | `[Comfort]` | Hide Broken Pink Objects | Hide objects the game can't draw in VR (they show as pink boxes) |
