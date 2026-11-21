@@ -238,7 +238,10 @@ namespace MoonXrStarter
                 // only once the thumb has rested there for a moment, so brushing it doesn't do it.
                 if (XrPadSource.ThumbRest) { if (_restSince < 0f) _restSince = Time.unscaledTime; }
                 else _restSince = -1f;
-                bool restHeld = _restSince >= 0f && Time.unscaledTime - _restSince >= Plugin.ThumbRestHold.Value;
+                // While building, the D-pad is needed straight away; walking around, the hold stops
+                // an accidental D-pad up (moon map).
+                float hold = BuildFix.Building ? 0f : Plugin.ThumbRestHold.Value;
+                bool restHeld = _restSince >= 0f && Time.unscaledTime - _restSince >= hold;
                 if (Plugin.ThumbRestDpad.Value && restHeld)
                 {
                     var d = _lStick;

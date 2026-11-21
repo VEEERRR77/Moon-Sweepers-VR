@@ -23,6 +23,9 @@ namespace MoonXrStarter
         private static PropertyInfo _selected, _menu, _window, _cards, _placing, _conveyor, _move, _cardRect, _cardButton;
         private static int _openFrame = -100;
         internal static bool Open => Time.frameCount - _openFrame <= 2;
+        private static int _buildFrame = -100;
+        /// <summary>True while the build menu is up or you're placing / moving a piece.</summary>
+        internal static bool Building => Time.frameCount - _buildFrame <= 2;
         private static RectTransform _panel;
         private static bool _aHeld, _swapUpdate, _swapLate, _loggedErr, _loggedClick, _loggedAim, _loggedMenu, _loggedMiss;
         private static int _aFrame = -1; private static bool _aDown;
@@ -117,6 +120,7 @@ namespace MoonXrStarter
                 bool windowActive = window != null && window.gameObject.activeInHierarchy;
                 bool menuOpen = menu != null ? menuActive && (window == null || windowActive) : windowActive;
                 int state = (menuActive ? 1 : 0) | (windowActive ? 2 : 0) | (Placing(__instance) ? 4 : 0);
+                if (state != 0) _buildFrame = Time.frameCount;
                 if (state != _lastState && _stateLogs < 12) { _stateLogs++; _lastState = state; Plugin.L.LogInfo($"Build: menu {menuActive}, window {windowActive}, placing {Placing(__instance)}"); }
                 if (!menuOpen)
                 {
