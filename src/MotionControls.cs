@@ -82,6 +82,11 @@ namespace MoonXrStarter
                         if (any) names += t.Name.Replace("Moon", "").Replace("Interaction", "") + " ";
                     }
                     Plugin.L.LogMessage($"Motion: hand-aimed interaction on {n} methods: {names}");
+                    // The garage's "press Y" prompt and the equipment system (start pushing the push
+                    // sweeper, get into vehicles, capsules...) also aim from the camera: point with
+                    // the hand there too - but not while the garage menu is open or while you drive.
+                    HookGuarded(h, "MoonCleaners.MoonGarageMenu", "IsOpen", false);
+                    HookGuarded(h, "MoonCleaners.MoonPrototypeEquipment", "Vehicle", true);
                 }
 
                 MenuFix.Install(h);
@@ -506,6 +511,45 @@ namespace MoonXrStarter
             {
                 if (!_loggedErr) { _loggedErr = true; Plugin.L.LogError("Motion: brush prefix error: " + e); }
             }
+        }
+
+        // Hand aiming for one type's Update, skipped while a property says it's busy
+        // (bool property true, or object property set).
+        private static readonly System.Collections.Generic.Dictionary<Type, PropertyInfo> _guards = new System.Collections.Generic.Dictionary<Type, PropertyInfo>();
+        private static void HookGuarded(Harmony h, string typeName, string busyProp, bool isObject)
+        {
+            try
+            {
+                var t = AccessTools.TypeByName(typeName);
+                var upd = t != null ? AccessTools.Method(t, "Update") : null;
+                if (upd == null) { Plugin.L.LogWarning($"Motion: {typeName}.Update not found for hand aiming"); return; }
+                _guards[t] = AccessTools.Property(t, busyProp);
+                h.Patch(upd, prefix: new HarmonyMethod(typeof(MotionControls).GetMethod(nameof(GuardPre), BindingFlags.Static | BindingFlags.NonPublic)),
+                             postfix: new HarmonyMethod(typeof(MotionControls).GetMethod(nameof(GuardPost), BindingFlags.Static | BindingFlags.NonPublic)));
+                Plugin.L.LogInfo($"Motion: hand-aimed prompts for {t.Name} (paused while {busyProp})");
+            }
+            catch (Exception e) { Plugin.L.LogWarning($"Motion: could not hook {typeName}: {e.Message}"); }
+        }
+
+        private static void GuardPre(object __instance, out bool __state)
+        {
+            __state = false;
+            try
+            {
+                if (__instance != null && _guards.TryGetValue(__instance.GetType(), out var p) && p != null)
+                {
+                    var v = p.GetValue(__instance);
+                    if (v is bool b ? b : v != null) return;   // busy: leave the game's own aiming alone
+                }
+                BrushPre();
+                __state = true;
+            }
+            catch { }
+        }
+
+        private static void GuardPost(bool __state)
+        {
+            if (__state) BrushPost();
         }
 
         private static void BrushPost()
