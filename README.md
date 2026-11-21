@@ -14,6 +14,7 @@ Play **Moon Sweepers** (Steam) in PC VR with head tracking and motion controls.
 - **Building with your hand:** point at a card in the build menu and pull the right trigger to choose it; the piece then follows your right hand across the ground, and a conveyor's far end follows your hand too
 - **Garage menu with the laser:** point at a vehicle, fleet row, upgrade, tab or button and pull the right trigger
 - **Brushes and hammer in your hand:** brushes sit close and low when you're not sweeping (sweeping on the floor is unchanged); the hammer sits in your hand
+- **Internet radio on your wrist:** both grips + Y shows a radio above your left hand; point and pull the right trigger to play, change station or volume. Stations are editable in the config
 - **Update check:** a notice above the main menu when a newer version of the mod is out
 - **Coffee in your hand:** the mug sits in your right hand when you pick up a coffee, and the laser hides until you're done
 - **Air hockey and chess in VR:** sit down at the air hockey table and you get a proper view from your end of the table; at the chess table you're seated in the chair you walked up to
@@ -84,6 +85,7 @@ Then: **start SteamVR first**, then launch Moon Sweepers from Steam. The first l
 | Both grips + A (or click both sticks) | Recenter the view |
 | Both grips + right stick up / down | Raise / lower your view |
 | Both grips + X | Laser on / off |
+| Both grips + Y | Show / hide the wrist radio |
 | Both grips + right stick left / right | Laser colour (yellow, blue, red, green, white) |
 | Both grips + left stick left / right | Laser brightness |
 | Both grips + left stick up / down | Held-tool height (gamepad play) |
@@ -141,6 +143,7 @@ Keyboard: F9 recenter, F11 / F10 view height.
 | `[Motion Controls]` | Brush Pull In, Brush Lower, Brush Closer To Body, Brush Offset Fade | Where a held brush sits when you're not sweeping |
 | `[Motion Controls]` | Hammer Offset X/Y/Z | Nudge the hammer in your hand |
 | `[Diagnostics]` | Performance Log | Log the mod's own timings and slow frames (for tracking down stutters) |
+| `[Radio]` | Enabled, Stations, Volume, Height Above Hand, Width | Wrist radio: station list (`Name|URL; Name|URL`), volume and panel placement |
 | `[Updates]` | Check For Updates | Check GitHub for a newer version at start-up and show a notice above the main menu |
 | `[Comfort]` | Disable Motion Blur, Disable Vignette | Comfort tweaks |
 | `[Comfort]` | Hide Broken Pink Objects | Hide objects the game can't draw in VR (they show as pink boxes) |
@@ -185,6 +188,7 @@ Source files: `Plugin.cs` (settings, starts OpenVR), `HeadTracking.cs`, `UiToWor
 ## Credits and licences
 
 - **This project:** MIT (see [LICENSE](LICENSE)).
+- **[NAudio](https://github.com/naudio/NAudio)** by Mark Heath, MIT. Plays the wrist radio; included in the zip.
 - **Bamasuperman** for the air hockey camera fix and for testing. Officially, any bug in any part of the mod is his fault.
 - **[UUVR](https://github.com/Raicuparta/uuvr)** by Raicuparta, GPL-3.0. Downloaded by the installer from its official releases; not included.
 - **[BepInEx](https://github.com/BepInEx/BepInEx)**, LGPL-2.1. Downloaded by the installer from builds.bepinex.dev; not included.

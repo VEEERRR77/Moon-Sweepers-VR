@@ -224,7 +224,7 @@ namespace MoonXrStarter
                 // Chess: the right trigger clicks the virtual mouse (at the square the laser points
                 // at, see ChessPointer), and doesn't sweep.
                 // Garage menu: the same, the trigger is the mouse click there (see GarageFix).
-                if (HeadTracking.ChessActive || GarageFix.Open)
+                if (HeadTracking.ChessActive || GarageFix.Open || Radio.Hovering)
                 {
                     _rTrigger = 0f;
                 }
@@ -261,13 +261,18 @@ namespace MoonXrStarter
                     if (lsc && !_hudToggleHeld) UiToWorld.ToggleHud();
                     _hudToggleHeld = lsc;
                     buttons &= ~(1u << 8);
+                    // ...Y shows / hides the radio on your left wrist...
+                    bool y = (buttons & (1u << 4)) != 0;
+                    if (y && !_radioToggleHeld && Plugin.RadioEnabled.Value) Radio.ToggleShown();
+                    _radioToggleHeld = y;
+                    if (y) buttons &= ~((1u << 4) | (1u << 13));   // not Y / Select in the game
                     // ...and A recenters the view (kept away from the game so you don't jump).
                     bool a = (buttons & (1u << 6)) != 0;
                     if (a && !_recenterHeld) { HeadTracking.Recenter(); Plugin.L.LogInfo("Head tracking: recentered (grips + A)"); }
                     _recenterHeld = a;
                     buttons &= ~(1u << 6);
                 }
-                else { _recenterHeld = false; _laserToggleHeld = false; _hudToggleHeld = false; }
+                else { _recenterHeld = false; _laserToggleHeld = false; _hudToggleHeld = false; _radioToggleHeld = false; }
                 // Right stick up/down is passed to the game, so it looks up/down the same way
                 // left/right turns you.
                 _sentL = Dead(_lStick); _sentR = Dead(_rStick); _sentLT = _lTrigger < 0.05f ? 0f : _lTrigger; _sentRT = _rTrigger < 0.05f ? 0f : _rTrigger;
@@ -468,6 +473,7 @@ namespace MoonXrStarter
         private static int _depth;
 
         internal static float RawRightTrigger;
+        private static bool _radioToggleHeld;
         private static bool _buildTrigHeld; private static int _buildTrigLogs;
         internal static void HandAimBegin() => BrushPre();
         internal static void HandAimEnd() => BrushPost();

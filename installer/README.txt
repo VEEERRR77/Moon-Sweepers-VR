@@ -67,6 +67,7 @@ Controls (Quest / Touch motion controllers)
   (or click BOTH thumbsticks together)
 - Hold BOTH grips, right stick UP / DOWN . raise / lower your view
 - Hold BOTH grips and press X ............ laser on / off
+- Hold BOTH grips and press Y ............ show / hide the wrist radio
 - Hold BOTH grips, right stick LEFT/RIGHT  laser colour
 - Hold BOTH grips, left stick LEFT/RIGHT . laser brightness
 - Hold BOTH grips, left stick UP / DOWN .. held-tool height (gamepad play)
@@ -153,6 +154,7 @@ Credits
 - MoonSweepers BepInEx Patcher 1.0.2 by boverson777 - not included;
   get it from nexusmods.com/moonsweepers/mods/9 (please endorse it)
 - Moon Sweepers VR plugin and installer (MIT) - source on GitHub
+- NAudio (MIT) by Mark Heath - plays the radio; included
 - Bamasuperman - air hockey camera fix and testing. Officially, any bug
   in any part of the mod is his fault.
 

@@ -147,7 +147,7 @@ namespace MoonXrStarter
                     end = info.point;
                     hit = true;
                 }
-                if ((MapFix.TryClip(p, dir, out float md) || WallFix.TryClip(p, dir, out md) || BuildFix.TryClip(p, dir, out md) || ChessPointer.TryClip(p, dir, out md) || GarageFix.TryClip(p, dir, out md)) && md < len)
+                if ((MapFix.TryClip(p, dir, out float md) || WallFix.TryClip(p, dir, out md) || BuildFix.TryClip(p, dir, out md) || ChessPointer.TryClip(p, dir, out md) || GarageFix.TryClip(p, dir, out md) || Radio.TryClip(p, dir, out md)) && md < len)
                 {
                     len = Mathf.Max(0.01f, md - 0.01f); end = p + dir * len; hit = true;   // stop just in front of the map panel
                 }

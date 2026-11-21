@@ -21,6 +21,10 @@ namespace MoonXrStarter
         internal static BepInEx.Configuration.ConfigEntry<bool> CheckForUpdates;
         internal static BepInEx.Configuration.ConfigEntry<float> BuildMenuWidth;
         internal static BepInEx.Configuration.ConfigEntry<bool> PerfLog;
+        internal static BepInEx.Configuration.ConfigEntry<bool> RadioEnabled, RadioShown;
+        internal static BepInEx.Configuration.ConfigEntry<string> RadioStations;
+        internal static BepInEx.Configuration.ConfigEntry<int> RadioStation;
+        internal static BepInEx.Configuration.ConfigEntry<float> RadioVolume, RadioHeight, RadioWidth;
         internal static ManualLogSource L;
         internal static BepInEx.Configuration.ConfigEntry<float> UiDistance;
         internal static BepInEx.Configuration.ConfigEntry<bool> HeadTrackingEnabled;
@@ -85,6 +89,13 @@ namespace MoonXrStarter
             ChessEyeHeight = Config.Bind("Chess VR", "Eye Height Above Seat", 0.75f, "Eye height above the seat, in metres (before the existing global headset height offset). Try 0.6 to 0.9.");
             ChessLightOdd = Config.Bind("Chess VR", "Flip Move Dot Colours", false, "Move dots are drawn black on the light squares so you can see them. If they come out black on the dark squares instead, set this to true.");
             ChessLean = Config.Bind("Chess VR", "Lean Toward Table", 0.1f, "Lean this many metres toward the table from the seat. 0 = exactly above the seat.");
+            RadioEnabled = Config.Bind("Radio", "Enabled", true, "Internet radio on your left wrist. Show / hide the panel with both grips + Y; point the laser at its buttons and pull the right trigger.");
+            RadioShown = Config.Bind("Radio", "Panel Shown", false, "Whether the radio panel is showing (both grips + Y toggles it).");
+            RadioStations = Config.Bind("Radio", "Stations", "SomaFM Space Station|https://ice1.somafm.com/spacestation-128-mp3; SomaFM Deep Space One|https://ice1.somafm.com/deepspaceone-128-mp3; SomaFM Groove Salad|https://ice1.somafm.com/groovesalad-128-mp3; SomaFM Secret Agent|https://ice1.somafm.com/secretagent-128-mp3; SomaFM DEF CON Radio|https://ice1.somafm.com/defcon-128-mp3; Radio Paradise|https://stream.radioparadise.com/mp3-128", "Radio stations as Name|stream URL, separated by semicolons. Most MP3 / AAC internet radio streams work (the direct stream address, not a web page).");
+            RadioStation = Config.Bind("Radio", "Station", 0, "Which station in the list was last chosen (0 = first).");
+            RadioVolume = Config.Bind("Radio", "Volume", 0.5f, "Radio volume, 0 to 1 (separate from the game's own volume).");
+            RadioHeight = Config.Bind("Radio", "Height Above Hand", 0.2f, "How far above your left hand the radio panel floats, in metres.");
+            RadioWidth = Config.Bind("Radio", "Width", 0.3f, "Width of the radio panel, in metres.");
             CheckForUpdates = Config.Bind("Updates", "Check For Updates", true, "At start-up, check GitHub for a newer Moon Sweepers VR release and show a notice above the main menu if there is one. Nothing is downloaded or installed.");
             PerfLog = Config.Bind("Diagnostics", "Performance Log", false, "Log how long the mod's own work takes, any slow pieces, and frames under 20 fps (to find stutters). Only writes to the log.");
             MinigameDiagnostics = Config.Bind("Diagnostics", "Table Camera Probe", false, "Log camera poses and nearby named chess/air-hockey objects about once per second. Disable after testing.");
