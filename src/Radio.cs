@@ -1,7 +1,8 @@
 // Internet radio on your left wrist. A small panel floats above the left hand (show / hide with
 // both grips + Y); point the laser at its buttons and pull the right trigger. Stations come from
-// the config ("Name|stream URL" pairs separated by ";"). The audio is played by NAudio through
-// Windows' default sound output, separately from the game's own sound.
+// the config ("Name|stream URL" pairs separated by ";"), and Search finds more in the free
+// radio-browser.info directory (Save adds the one playing to your list). The audio is played by
+// NAudio through Windows' default sound output, separately from the game's own sound.
 using System;
 using System.Collections.Generic;
 using System.Threading;
@@ -15,7 +16,8 @@ namespace MoonXrStarter
     internal static class Radio
     {
         // ---------------------------------------------------------------- stations
-        private class Station { public string Name, Url; }
+        private class Station { public string Name, Url, Info; }
+        private static Station _searchStation;   // a station picked from search results (not in the list)
         private static readonly List<Station> _stations = new List<Station>();
         private static string _stationsRaw;
         private static int _index;
@@ -63,8 +65,12 @@ namespace MoonXrStarter
         private static void Play()
         {
             RefreshStations();
-            if (_stations.Count == 0) { _status = "No stations in the config"; return; }
-            var st = _stations[_index];
+            var st = _searchStation;
+            if (st == null)
+            {
+                if (_stations.Count == 0) { _status = "No stations in the config"; return; }
+                st = _stations[_index];
+            }
             _wantPlaying = true;
             int gen = Interlocked.Increment(ref _generation);
             _status = "Connecting...";
@@ -128,7 +134,8 @@ namespace MoonXrStarter
         {
             RefreshStations();
             if (_stations.Count == 0) return;
-            _index = (_index + d + _stations.Count) % _stations.Count;
+            if (_searchStation != null) _searchStation = null;   // back to your own list
+            else _index = (_index + d + _stations.Count) % _stations.Count;
             Plugin.RadioStation.Value = _index;
             if (_wantPlaying) Play();
         }
@@ -147,13 +154,112 @@ namespace MoonXrStarter
 
         internal static void Shutdown() { _wantPlaying = false; Interlocked.Increment(ref _generation); StopAudio(); }
 
+        // ---------------------------------------------------------------- search (Radio Browser)
+        // radio-browser.info: a free, community-run directory of internet radio stations.
+        private static readonly string[] Servers = { "de1.api.radio-browser.info", "nl1.api.radio-browser.info", "at1.api.radio-browser.info" };
+        private static readonly List<Station> _results = new List<Station>();
+        private static volatile string _searchStatus = "";
+        private static volatile bool _searching;
+        private static int _resultsVersion, _shownResultsVersion = -1;
+
+        private static async Task<List<Station>> Query(System.Net.Http.HttpClient http, string field, string q)
+        {
+            var list = new List<Station>();
+            foreach (var host in Servers)
+            {
+                try
+                {
+                    string url = $"https://{host}/json/stations/search?{field}={Uri.EscapeDataString(q)}&limit=40&hidebroken=true&order=clickcount&reverse=true";
+                    string json = await http.GetStringAsync(url);
+                    using var doc = System.Text.Json.JsonDocument.Parse(json);
+                    foreach (var e in doc.RootElement.EnumerateArray())
+                    {
+                        string Get(string k) => e.TryGetProperty(k, out var v) && v.ValueKind == System.Text.Json.JsonValueKind.String ? v.GetString() : "";
+                        string codec = Get("codec").ToUpperInvariant();
+                        if (codec.Length > 0 && codec != "MP3" && codec != "AAC" && codec != "AAC+") continue;   // what Windows can play
+                        string stream = Get("url_resolved"); if (stream.Length == 0) stream = Get("url");
+                        if (stream.Length == 0) continue;
+                        int br = e.TryGetProperty("bitrate", out var b) && b.ValueKind == System.Text.Json.JsonValueKind.Number ? b.GetInt32() : 0;
+                        string country = Get("countrycode");
+                        string tags = Get("tags"); if (tags.Length > 40) tags = tags.Substring(0, 40);
+                        list.Add(new Station
+                        {
+                            Name = Get("name").Trim(), Url = stream,
+                            Info = (country.Length > 0 ? country + "  " : "") + (br > 0 ? br + " kbps  " : "") + tags.Replace(",", ", ")
+                        });
+                    }
+                    return list;
+                }
+                catch (Exception e) { Plugin.L.LogInfo($"Radio: search on {host} failed ({(e.InnerException ?? e).Message})"); }
+            }
+            return list;
+        }
+
+        private static void Search(string q)
+        {
+            q = (q ?? "").Trim();
+            if (q.Length == 0 || _searching) return;
+            _searching = true;
+            _searchStatus = "Searching for \"" + q + "\"...";
+            Task.Run(async () =>
+            {
+                try
+                {
+                    using var http = new System.Net.Http.HttpClient { Timeout = TimeSpan.FromSeconds(10) };
+                    http.DefaultRequestHeaders.UserAgent.ParseAdd("MoonSweepersVR/" + Plugin.Version);
+                    var byName = await Query(http, "name", q);
+                    var byTag = await Query(http, "tag", q.ToLowerInvariant());
+                    var seen = new HashSet<string>();
+                    var all = new List<Station>();
+                    foreach (var st in byName) if (seen.Add(st.Url)) all.Add(st);
+                    foreach (var st in byTag) if (seen.Add(st.Url)) all.Add(st);
+                    lock (_results) { _results.Clear(); _results.AddRange(all); _resultsVersion++; }
+                    _searchStatus = all.Count == 0 ? "No stations found for \"" + q + "\"" : all.Count + " stations for \"" + q + "\"";
+                    Plugin.L.LogInfo($"Radio: search \"{q}\" found {all.Count} stations");
+                }
+                catch (Exception e)
+                {
+                    _searchStatus = "Search failed - check your internet";
+                    Plugin.L.LogWarning("Radio: search failed: " + (e.InnerException ?? e).Message);
+                }
+                finally { _searching = false; }
+            });
+        }
+
+        private static string Clean(string t) => (t ?? "").Replace("|", "/").Replace(";", ",").Trim();
+
+        // Add the station you're listening to (or a search result) to your own list in the config.
+        private static void SaveCurrent()
+        {
+            RefreshStations();
+            var st = _searchStation;
+            if (st == null) { _flash = "Already in your list"; _flashUntil = Time.unscaledTime + 2f; return; }
+            foreach (var x in _stations) if (x.Url == st.Url) { _flash = "Already in your list"; _flashUntil = Time.unscaledTime + 2f; return; }
+            string raw = (Plugin.RadioStations.Value ?? "").Trim().TrimEnd(';');
+            Plugin.RadioStations.Value = (raw.Length > 0 ? raw + "; " : "") + Clean(st.Name) + "|" + st.Url;
+            RefreshStations();
+            _index = _stations.Count - 1;
+            Plugin.RadioStation.Value = _index;
+            _searchStation = null;
+            _flash = "Saved to your stations"; _flashUntil = Time.unscaledTime + 2f;
+            Plugin.L.LogInfo($"Radio: saved '{st.Name}' to the station list");
+        }
+
         // ---------------------------------------------------------------- panel
-        private class Btn { public RectTransform Rect; public UnityEngine.UI.Image Bg; public TMPro.TextMeshProUGUI Label; public Action Act; }
+        private enum View { Player, Keyboard, Results }
+        private class Btn { public RectTransform Rect; public UnityEngine.UI.Image Bg; public TMPro.TextMeshProUGUI Label; public Action Act; public View On; public bool Live = true; }
         private static GameObject _panel;
         private static RectTransform _rect;
-        private static TMPro.TextMeshProUGUI _title, _info;
+        private static readonly Dictionary<View, RectTransform> _views = new Dictionary<View, RectTransform>();
+        private static View _view = View.Player;
+        private static TMPro.TextMeshProUGUI _title, _info, _query, _kbStatus, _resStatus;
         private static Btn _playBtn;
         private static readonly List<Btn> _btns = new List<Btn>();
+        private static readonly List<Btn> _resultBtns = new List<Btn>();
+        private static int _page;
+        private const int PerPage = 6;
+        private static string _typed = "";
+        private static string _flash; private static float _flashUntil;
         private static Btn _hover;
         private static bool _wasDown, _failed, _loggedErr;
         private static int _shownFrame = -100;
@@ -163,7 +269,7 @@ namespace MoonXrStarter
         private static bool _laserOnPanel;
         private static TMPro.TMP_FontAsset _font;
 
-        private static readonly Color PanelColour = new Color(0.08f, 0.09f, 0.11f, 0.85f);
+        private static readonly Color PanelColour = new Color(0.08f, 0.09f, 0.11f, 0.88f);
         private static readonly Color ButtonColour = new Color(0.20f, 0.22f, 0.26f, 1f);
         private static readonly Color HoverColour = new Color(1f, 0.85f, 0.2f, 1f);
 
@@ -192,6 +298,17 @@ namespace MoonXrStarter
             return rt;
         }
 
+        private static RectTransform Group(string name)
+        {
+            var go = new GameObject(name);
+            go.layer = 5;
+            go.transform.SetParent(_rect, false);
+            var rt = go.AddComponent<RectTransform>();
+            rt.anchorMin = rt.anchorMax = rt.pivot = new Vector2(0.5f, 0.5f);
+            rt.anchoredPosition = Vector2.zero; rt.sizeDelta = _rect.sizeDelta;
+            return rt;
+        }
+
         private static TMPro.TextMeshProUGUI Text(Transform parent, string name, Vector2 pos, Vector2 size, float fontSize, string text)
         {
             var go = new GameObject(name);
@@ -211,14 +328,23 @@ namespace MoonXrStarter
             return t;
         }
 
-        private static Btn Button(string label, Vector2 pos, Vector2 size, Action act)
+        private static Btn Button(View view, string label, Vector2 pos, Vector2 size, Action act, float fontSize = 34f)
         {
-            var rt = Box(_rect, "Button " + label, pos, size, ButtonColour, out var img);
-            var t = Text(rt, "Label", Vector2.zero, size, 34f, label);
-            var b = new Btn { Rect = rt, Bg = img, Label = t, Act = act };
+            var rt = Box(_views[view], "Button " + label, pos, size, ButtonColour, out var img);
+            var t = Text(rt, "Label", Vector2.zero, size - new Vector2(12f, 0f), fontSize, label);
+            var b = new Btn { Rect = rt, Bg = img, Label = t, Act = act, On = view };
             _btns.Add(b);
             return b;
         }
+
+        private static void Show(View v)
+        {
+            _view = v;
+            foreach (var kv in _views) kv.Value.gameObject.SetActive(kv.Key == v);
+            _rect.sizeDelta = v == View.Player ? new Vector2(640f, 380f) : new Vector2(640f, 520f);
+            if (_bg != null) _bg.rectTransform.sizeDelta = _rect.sizeDelta;
+        }
+        private static UnityEngine.UI.Image _bg;
 
         private static void Build()
         {
@@ -230,19 +356,94 @@ namespace MoonXrStarter
             canvas.renderMode = RenderMode.WorldSpace;
             canvas.sortingOrder = 3200;
             _rect = _panel.GetComponent<RectTransform>();
-            _rect.sizeDelta = new Vector2(640f, 300f);
-            var bg = _panel.AddComponent<UnityEngine.UI.Image>();
-            bg.color = PanelColour;
-            bg.raycastTarget = false;
-            _title = Text(_rect, "Station", new Vector2(0f, 105f), new Vector2(600f, 60f), 40f, "Radio");
-            _info = Text(_rect, "Status", new Vector2(0f, 55f), new Vector2(600f, 40f), 28f, "");
+            _rect.sizeDelta = new Vector2(640f, 520f);
+            _bg = _panel.AddComponent<UnityEngine.UI.Image>();
+            _bg.color = PanelColour;
+            _bg.raycastTarget = false;
+            foreach (View v in Enum.GetValues(typeof(View))) _views[v] = Group(v + " view");
+
+            // Player
+            var pl = _views[View.Player];
+            _title = Text(pl, "Station", new Vector2(0f, 145f), new Vector2(600f, 60f), 40f, "Radio");
+            _info = Text(pl, "Status", new Vector2(0f, 95f), new Vector2(600f, 40f), 26f, "");
             _info.color = new Color(0.75f, 0.75f, 0.78f, 1f);
-            Button("<", new Vector2(-220f, -25f), new Vector2(150f, 90f), () => Step(-1));
-            _playBtn = Button("Play", new Vector2(0f, -25f), new Vector2(240f, 90f), TogglePlay);
-            Button(">", new Vector2(220f, -25f), new Vector2(150f, 90f), () => Step(1));
-            Button("Vol -", new Vector2(-150f, -115f), new Vector2(240f, 60f), () => ChangeVolume(-0.1f));
-            Button("Vol +", new Vector2(150f, -115f), new Vector2(240f, 60f), () => ChangeVolume(0.1f));
+            Button(View.Player, "<", new Vector2(-220f, 20f), new Vector2(150f, 90f), () => Step(-1));
+            _playBtn = Button(View.Player, "Play", new Vector2(0f, 20f), new Vector2(240f, 90f), TogglePlay);
+            Button(View.Player, ">", new Vector2(220f, 20f), new Vector2(150f, 90f), () => Step(1));
+            Button(View.Player, "Vol -", new Vector2(-150f, -70f), new Vector2(240f, 60f), () => ChangeVolume(-0.1f));
+            Button(View.Player, "Vol +", new Vector2(150f, -70f), new Vector2(240f, 60f), () => ChangeVolume(0.1f));
+            Button(View.Player, "Search", new Vector2(-150f, -145f), new Vector2(240f, 60f), () => Show(View.Keyboard));
+            Button(View.Player, "Save", new Vector2(150f, -145f), new Vector2(240f, 60f), SaveCurrent);
+
+            // Keyboard
+            var kb = _views[View.Keyboard];
+            Box(kb, "Query box", new Vector2(0f, 205f), new Vector2(600f, 60f), new Color(0f, 0f, 0f, 0.6f), out _);
+            _query = Text(kb, "Query", new Vector2(0f, 205f), new Vector2(580f, 60f), 36f, "");
+            _kbStatus = Text(kb, "Hint", new Vector2(0f, 155f), new Vector2(600f, 36f), 24f, "Type a station name or genre (jazz, rock, bbc...)");
+            _kbStatus.color = new Color(0.75f, 0.75f, 0.78f, 1f);
+            string[] rows = { "1234567890", "QWERTYUIOP", "ASDFGHJKL", "ZXCVBNM" };
+            for (int r = 0; r < rows.Length; r++)
+            {
+                string row = rows[r];
+                float w = 58f, gap = 4f;
+                float x0 = -(row.Length * (w + gap) - gap) / 2f + w / 2f;
+                for (int c = 0; c < row.Length; c++)
+                {
+                    char ch = row[c];
+                    Button(View.Keyboard, ch.ToString(), new Vector2(x0 + c * (w + gap), 95f - r * 64f), new Vector2(w, 58f),
+                           () => { if (_typed.Length < 30) _typed += char.ToLowerInvariant(ch); }, 30f);
+                }
+            }
+            Button(View.Keyboard, "Space", new Vector2(-160f, -165f), new Vector2(180f, 60f), () => { if (_typed.Length < 30 && _typed.Length > 0 && !_typed.EndsWith(" ")) _typed += " "; }, 28f);
+            Button(View.Keyboard, "Delete", new Vector2(40f, -165f), new Vector2(180f, 60f), () => { if (_typed.Length > 0) _typed = _typed.Substring(0, _typed.Length - 1); }, 28f);
+            Button(View.Keyboard, "Clear", new Vector2(220f, -165f), new Vector2(140f, 60f), () => _typed = "", 28f);
+            Button(View.Keyboard, "Back", new Vector2(-160f, -230f), new Vector2(180f, 56f), () => Show(View.Player), 28f);
+            Button(View.Keyboard, "Search", new Vector2(130f, -230f), new Vector2(340f, 56f), () => { if (_typed.Trim().Length > 0) { _page = 0; _shownResultsVersion = -1; Search(_typed); Show(View.Results); } }, 30f);
+
+            // Results
+            var rs = _views[View.Results];
+            _resStatus = Text(rs, "Results status", new Vector2(0f, 220f), new Vector2(600f, 40f), 26f, "");
+            for (int i = 0; i < PerPage; i++)
+            {
+                int slot = i;
+                var b = Button(View.Results, "", new Vector2(0f, 160f - i * 62f), new Vector2(600f, 56f), () => PickResult(slot), 24f);
+                b.Label.alignment = TMPro.TextAlignmentOptions.Left;
+                _resultBtns.Add(b);
+            }
+            Button(View.Results, "< Prev", new Vector2(-205f, -230f), new Vector2(180f, 56f), () => { if (_page > 0) _page--; _shownResultsVersion = -1; }, 26f);
+            Button(View.Results, "New search", new Vector2(0f, -230f), new Vector2(210f, 56f), () => Show(View.Keyboard), 26f);
+            Button(View.Results, "Next >", new Vector2(205f, -230f), new Vector2(180f, 56f), () => { lock (_results) { if ((_page + 1) * PerPage < _results.Count) _page++; } _shownResultsVersion = -1; }, 26f);
+
+            Show(View.Player);
             Plugin.L.LogInfo("Radio: panel built");
+        }
+
+        private static void PickResult(int slot)
+        {
+            Station st = null;
+            lock (_results) { int i = _page * PerPage + slot; if (i < _results.Count) st = _results[i]; }
+            if (st == null) return;
+            _searchStation = st;
+            Play();
+            Show(View.Player);
+        }
+
+        private static void RefreshResults()
+        {
+            if (_shownResultsVersion == _resultsVersion) return;
+            _shownResultsVersion = _resultsVersion;
+            lock (_results)
+            {
+                for (int i = 0; i < PerPage; i++)
+                {
+                    int k = _page * PerPage + i;
+                    var b = _resultBtns[i];
+                    bool has = k < _results.Count;
+                    b.Live = has;
+                    b.Rect.gameObject.SetActive(has);
+                    if (has) b.Label.text = $"<b>{_results[k].Name}</b>  <size=18><color=#BBBBBB>{_results[k].Info}</color></size>";
+                }
+            }
         }
 
         private static bool HitPanel(Vector3 p, Vector3 dir, out Vector3 point, out float dist)
@@ -283,19 +484,27 @@ namespace MoonXrStarter
                 if (!_panel.activeSelf) _panel.SetActive(true);
                 _shownFrame = Time.frameCount;
 
-                // Above the left hand (higher than the wrist HUD), turned to face you.
+                // Above the left hand (higher than the wrist HUD), turned to face you. The search
+                // pages (keyboard, results) are shown bigger so the keys are easy to hit.
                 var up = HeadTracking.WorldUp(hp);
-                Vector3 pos = hp + up * Plugin.RadioHeight.Value;
+                float width = Plugin.RadioWidth.Value * (_view == View.Player ? 1f : 1.6f);
+                float s = width / 640f;
+                Vector3 pos = hp + up * (Plugin.RadioHeight.Value + _rect.sizeDelta.y * s * 0.5f - 0.06f);
                 var toPanel = pos - eye;
                 if (toPanel.sqrMagnitude < 0.0001f) return;
-                float s = Plugin.RadioWidth.Value / 640f;
                 _rect.SetPositionAndRotation(pos, Quaternion.LookRotation(toPanel.normalized, up));
                 _rect.localScale = new Vector3(s, s, s);
 
                 RefreshStations();
-                _title.text = _stations.Count > 0 ? _stations[_index].Name : "No stations";
-                _info.text = $"{_status}   -   volume {Mathf.RoundToInt(Volume * 100f)}%";
-                _playBtn.Label.text = _wantPlaying ? "Stop" : "Play";
+                if (_view == View.Player)
+                {
+                    _title.text = _searchStation != null ? _searchStation.Name : _stations.Count > 0 ? _stations[_index].Name : "No stations";
+                    string msg = _flash != null && Time.unscaledTime < _flashUntil ? _flash : _status;
+                    _info.text = $"{msg}   -   volume {Mathf.RoundToInt(Volume * 100f)}%";
+                    _playBtn.Label.text = _wantPlaying ? "Stop" : "Play";
+                }
+                else if (_view == View.Keyboard) _query.text = _typed.Length > 0 ? _typed + "_" : "<color=#888888>search...</color>";
+                else { _resStatus.text = _searchStatus + (_page > 0 ? $"  (page {_page + 1})" : ""); RefreshResults(); }
 
                 // Laser: highlight the button it's on; the right trigger presses it.
                 _hover = null; _laserOnPanel = false;
@@ -304,12 +513,14 @@ namespace MoonXrStarter
                     _laserOnPanel = true;
                     foreach (var b in _btns)
                     {
+                        if (b.On != _view || !b.Live) continue;
                         Vector3 l = b.Rect.InverseTransformPoint(pt);
                         if (b.Rect.rect.Contains(new Vector2(l.x, l.y))) { _hover = b; break; }
                     }
                 }
                 foreach (var b in _btns)
                 {
+                    if (b.On != _view) continue;
                     bool h = b == _hover;
                     b.Bg.color = h ? HoverColour : ButtonColour;
                     b.Label.color = h ? Color.black : Color.white;

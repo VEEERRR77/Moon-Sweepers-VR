@@ -14,7 +14,7 @@ Play **Moon Sweepers** (Steam) in PC VR with head tracking and motion controls.
 - **Building with your hand:** point at a card in the build menu and pull the right trigger to choose it; the piece then follows your right hand across the ground, and a conveyor's far end follows your hand too
 - **Garage menu with the laser:** point at a vehicle, fleet row, upgrade, tab or button and pull the right trigger
 - **Brushes and hammer in your hand:** brushes sit close and low when you're not sweeping (sweeping on the floor is unchanged); the hammer sits in your hand
-- **Internet radio on your wrist:** both grips + Y shows a radio above your left hand; point and pull the right trigger to play, change station or volume. Stations are editable in the config
+- **Internet radio on your wrist:** both grips + Y shows a radio above your left hand; point and pull the right trigger to play, change station or volume. **Search** finds stations by name or genre (on-panel keyboard), and **Save** adds one to your list
 - **Update check:** a notice above the main menu when a newer version of the mod is out
 - **Coffee in your hand:** the mug sits in your right hand when you pick up a coffee, and the laser hides until you're done
 - **Air hockey and chess in VR:** sit down at the air hockey table and you get a proper view from your end of the table; at the chess table you're seated in the chair you walked up to
