@@ -77,45 +77,221 @@ namespace MoonXrStarter
             Task.Run(() => Connect(st, gen));
         }
 
+        private static System.Net.Http.HttpClient _http;
+        private static volatile string _nowPlaying = "";
+        private enum Ended { Stopped, NotMp3, Dropped }
+
+        private static System.Net.Http.HttpClient Http()
+        {
+            if (_http != null) return _http;
+            var h = new System.Net.Http.HttpClient(new System.Net.Http.HttpClientHandler { AllowAutoRedirect = true, MaxAutomaticRedirections = 10 })
+            { Timeout = System.Threading.Timeout.InfiniteTimeSpan };
+            h.DefaultRequestHeaders.UserAgent.ParseAdd("MoonSweepersVR/" + Plugin.Version);
+            return _http = h;
+        }
+
         private static void Connect(Station st, int gen)
         {
             StopAudio();
-            for (int attempt = 0; attempt < 3 && gen == _generation; attempt++)
+            _nowPlaying = "";
+            for (int attempt = 0; attempt < 4 && gen == _generation; attempt++)
             {
+                string url = st.Url;
                 try
                 {
-                    var reader = new MediaFoundationReader(st.Url);
-                    var channel = new SampleChannel(reader, true) { Volume = Volume };
-                    var output = new WasapiOut(NAudio.CoreAudioApi.AudioClientShareMode.Shared, 200);
-                    output.Init(channel);
-                    lock (_lock)
-                    {
-                        if (gen != _generation) { output.Dispose(); reader.Dispose(); return; }   // changed station meanwhile
-                        _reader = reader; _channel = channel; _out = output;
-                        output.PlaybackStopped += (s, e) =>
-                        {
-                            // The stream dropped: reconnect if we still want this station.
-                            if (gen == _generation && _wantPlaying)
-                            {
-                                _status = "Reconnecting...";
-                                Plugin.L.LogInfo("Radio: stream stopped (" + (e.Exception?.Message ?? "end of stream") + "), reconnecting");
-                                Task.Delay(2000).ContinueWith(_ => { if (gen == _generation && _wantPlaying) Connect(st, gen); });
-                            }
-                        };
-                        output.Play();
-                    }
-                    _status = "Playing";
-                    Plugin.L.LogInfo($"Radio: playing '{st.Name}' ({st.Url})");
+                    // Our own download first: follows redirects and playlist links, reads the song
+                    // titles, and decodes MP3 itself. Anything that isn't MP3 (AAC etc.) goes to
+                    // Windows' own player, given the final address.
+                    var r = StreamMp3(st, ref url, gen, 0);
+                    if (r == Ended.Stopped) return;
+                    if (r == Ended.Dropped) { if (gen == _generation) _status = "Reconnecting..."; Thread.Sleep(1500); attempt = 0; continue; }
+                    PlayWithWindows(st, url, gen);
                     return;
                 }
                 catch (Exception e)
                 {
-                    Plugin.L.LogWarning($"Radio: couldn't play '{st.Name}': {(e.InnerException ?? e).Message}");
-                    _status = "Can't connect - retrying";
+                    Plugin.L.LogWarning($"Radio: couldn't play '{st.Name}' ({url}): {(e.InnerException ?? e).Message}");
+                    StopAudio();
+                    if (gen == _generation) _status = "Can't connect - retrying";
                     Thread.Sleep(2000);
                 }
             }
-            if (gen == _generation) { _status = "Station unavailable"; }
+            if (gen == _generation) { _status = "Station unavailable"; _nowPlaying = ""; }
+        }
+
+        private static string FirstUrlIn(string body)
+        {
+            foreach (var line0 in body.Split('\n'))
+            {
+                var line = line0.Trim();
+                int eq = line.IndexOf('=');
+                if (line.StartsWith("File", StringComparison.OrdinalIgnoreCase) && eq > 0) line = line.Substring(eq + 1).Trim();   // .pls
+                if (line.StartsWith("http://", StringComparison.OrdinalIgnoreCase) || line.StartsWith("https://", StringComparison.OrdinalIgnoreCase)) return line;
+            }
+            return null;
+        }
+
+        private static Ended StreamMp3(Station st, ref string url, int gen, int depth)
+        {
+            var req = new System.Net.Http.HttpRequestMessage(System.Net.Http.HttpMethod.Get, url);
+            req.Headers.TryAddWithoutValidation("Icy-MetaData", "1");
+            using var resp = Http().Send(req, System.Net.Http.HttpCompletionOption.ResponseHeadersRead);
+            resp.EnsureSuccessStatusCode();
+            url = resp.RequestMessage?.RequestUri?.ToString() ?? url;   // after redirects
+            string type = (resp.Content.Headers.ContentType?.MediaType ?? "").ToLowerInvariant();
+            string lower = url.ToLowerInvariant();
+            bool hls = type.Contains("apple.mpegurl") || lower.Contains(".m3u8");
+            if (!hls && depth < 3 && (type.Contains("mpegurl") || type.Contains("scpls") || lower.EndsWith(".m3u") || lower.EndsWith(".pls")))
+            {
+                // A playlist file: play the first stream in it.
+                string next = FirstUrlIn(resp.Content.ReadAsStringAsync().GetAwaiter().GetResult());
+                if (next == null) throw new Exception("empty playlist");
+                url = next;
+                return StreamMp3(st, ref url, gen, depth + 1);
+            }
+            if (hls || !(type.Contains("mpeg") || type.Contains("mp3"))) return Ended.NotMp3;
+
+            int metaint = 0;
+            if (resp.Headers.TryGetValues("icy-metaint", out var mi)) foreach (var v in mi) int.TryParse(v, out metaint);
+            using var net = resp.Content.ReadAsStream();
+            var icy = new IcyStream(net, metaint);
+            IMp3FrameDecompressor dec = null;
+            BufferedWaveProvider buf = null;
+            var pcm = new byte[65536];
+            bool started = false;
+            try
+            {
+                while (gen == _generation)
+                {
+                    if (buf != null && buf.BufferedDuration.TotalSeconds > 4) { Thread.Sleep(50); continue; }
+                    Mp3Frame frame;
+                    try { frame = Mp3Frame.LoadFromStream(icy); }
+                    catch (System.IO.EndOfStreamException) { frame = null; }
+                    if (frame == null) { Plugin.L.LogInfo("Radio: stream ended, reconnecting"); return gen == _generation ? Ended.Dropped : Ended.Stopped; }
+                    if (dec == null)
+                    {
+                        var wf = new Mp3WaveFormat(frame.SampleRate, frame.ChannelMode == ChannelMode.Mono ? 1 : 2, frame.FrameLength, frame.BitRate);
+                        dec = new AcmMp3FrameDecompressor(wf);
+                        buf = new BufferedWaveProvider(dec.OutputFormat) { BufferDuration = TimeSpan.FromSeconds(10), DiscardOnBufferOverflow = true };
+                    }
+                    int n = dec.DecompressFrame(frame, pcm, 0);
+                    if (n > 0) buf.AddSamples(pcm, 0, n);
+                    if (!started && buf.BufferedDuration.TotalSeconds > 1.0)
+                    {
+                        var channel = new SampleChannel(buf, true) { Volume = Volume };
+                        var output = new WasapiOut(NAudio.CoreAudioApi.AudioClientShareMode.Shared, 200);
+                        output.Init(channel);
+                        lock (_lock)
+                        {
+                            if (gen != _generation) { output.Dispose(); return Ended.Stopped; }
+                            _channel = channel; _out = output;
+                            output.Play();
+                        }
+                        started = true;
+                        _status = "Playing";
+                        Plugin.L.LogInfo($"Radio: playing '{st.Name}' ({url}, {frame.BitRate / 1000} kbps MP3)");
+                    }
+                    if (icy.Title != null) _nowPlaying = icy.Title;
+                }
+                return Ended.Stopped;
+            }
+            finally
+            {
+                try { dec?.Dispose(); } catch { }
+                if (gen == _generation) StopAudio();   // dropped: our output goes too
+            }
+        }
+
+        // Anything that isn't plain MP3 (AAC, HLS...): Windows Media Foundation plays it.
+        private static void PlayWithWindows(Station st, string url, int gen)
+        {
+            var reader = new MediaFoundationReader(url);
+            var channel = new SampleChannel(reader, true) { Volume = Volume };
+            var output = new WasapiOut(NAudio.CoreAudioApi.AudioClientShareMode.Shared, 200);
+            output.Init(channel);
+            lock (_lock)
+            {
+                if (gen != _generation) { output.Dispose(); reader.Dispose(); return; }   // changed station meanwhile
+                _reader = reader; _channel = channel; _out = output;
+                output.PlaybackStopped += (s, e) =>
+                {
+                    // The stream dropped: reconnect if we still want this station.
+                    if (gen == _generation && _wantPlaying)
+                    {
+                        _status = "Reconnecting...";
+                        Plugin.L.LogInfo("Radio: stream stopped (" + (e.Exception?.Message ?? "end of stream") + "), reconnecting");
+                        Task.Delay(2000).ContinueWith(_ => { if (gen == _generation && _wantPlaying) Connect(st, gen); });
+                    }
+                };
+                output.Play();
+            }
+            _status = "Playing";
+            Plugin.L.LogInfo($"Radio: playing '{st.Name}' with Windows' player ({url})");
+        }
+
+        // Shoutcast / Icecast streams slip a short text block (with the song title) into the audio
+        // every "icy-metaint" bytes: this takes those out and keeps the title. Reads always fill
+        // the request (or hit the end), which the MP3 frame reader needs.
+        private sealed class IcyStream : System.IO.Stream
+        {
+            private readonly System.IO.Stream _in;
+            private readonly int _metaint;
+            private int _left;
+            private long _pos;
+            internal volatile string Title;
+            internal IcyStream(System.IO.Stream input, int metaint) { _in = input; _metaint = metaint; _left = metaint; }
+
+            private bool ReadExactly(byte[] b, int off, int n)
+            {
+                while (n > 0) { int r = _in.Read(b, off, n); if (r <= 0) return false; off += r; n -= r; }
+                return true;
+            }
+
+            public override int Read(byte[] buffer, int offset, int count)
+            {
+                int total = 0;
+                while (total < count)
+                {
+                    if (_metaint > 0 && _left == 0)
+                    {
+                        var lb = new byte[1];
+                        if (!ReadExactly(lb, 0, 1)) break;
+                        int len = lb[0] * 16;
+                        if (len > 0)
+                        {
+                            var meta = new byte[len];
+                            if (!ReadExactly(meta, 0, len)) break;
+                            string text = System.Text.Encoding.UTF8.GetString(meta).TrimEnd('\0');
+                            int a = text.IndexOf("StreamTitle='", StringComparison.Ordinal);
+                            if (a >= 0)
+                            {
+                                a += 13;
+                                int e = text.IndexOf("';", a, StringComparison.Ordinal);
+                                if (e < 0) e = text.LastIndexOf('\'');
+                                if (e > a) Title = text.Substring(a, e - a).Trim();
+                            }
+                        }
+                        _left = _metaint;
+                    }
+                    int want = count - total;
+                    if (_metaint > 0) want = Math.Min(want, _left);
+                    int r = _in.Read(buffer, offset + total, want);
+                    if (r <= 0) break;
+                    total += r; _pos += r;
+                    if (_metaint > 0) _left -= r;
+                }
+                return total;
+            }
+
+            public override bool CanRead => true;
+            public override bool CanSeek => false;
+            public override bool CanWrite => false;
+            public override long Length => throw new NotSupportedException();
+            public override long Position { get => _pos; set => throw new NotSupportedException(); }
+            public override void Flush() { }
+            public override long Seek(long o, System.IO.SeekOrigin s) => throw new NotSupportedException();
+            public override void SetLength(long v) => throw new NotSupportedException();
+            public override void Write(byte[] b, int o, int c) => throw new NotSupportedException();
         }
 
         private static float Volume => Mathf.Clamp01(Plugin.RadioVolume.Value);
@@ -124,7 +300,7 @@ namespace MoonXrStarter
         {
             _wantPlaying = false;
             Interlocked.Increment(ref _generation);
-            _status = "Off";
+            _status = "Off"; _nowPlaying = "";
             Task.Run(StopAudio);
         }
 
@@ -499,7 +675,9 @@ namespace MoonXrStarter
                 if (_view == View.Player)
                 {
                     _title.text = _searchStation != null ? _searchStation.Name : _stations.Count > 0 ? _stations[_index].Name : "No stations";
-                    string msg = _flash != null && Time.unscaledTime < _flashUntil ? _flash : _status;
+                    string np = _nowPlaying;
+                    string msg = _flash != null && Time.unscaledTime < _flashUntil ? _flash
+                               : (_wantPlaying && _status == "Playing" && !string.IsNullOrEmpty(np)) ? np : _status;
                     _info.text = $"{msg}   -   volume {Mathf.RoundToInt(Volume * 100f)}%";
                     _playBtn.Label.text = _wantPlaying ? "Stop" : "Play";
                 }
