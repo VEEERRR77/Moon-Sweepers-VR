@@ -454,9 +454,9 @@ namespace MoonXrStarter
                     // Pull the whole panel in towards your eyes (keeping its direction, so it stays as
                     // high or low in your view as the other menus).
                     float gd = Mathf.Max(0.5f, Plugin.GarageMenuDistance.Value);
-                    float k = gd / Mathf.Max(0.1f, dist);
+                    float pull = gd / Mathf.Max(0.1f, dist);
                     w = Plugin.ToolsScreenWidth.Value * gd / (dist + 0.5f);
-                    extra = (_smoothPos - eyeBase) * (k - 1f);
+                    extra = (_smoothPos - eyeBase) * (pull - 1f);
                 }
                 else if (t.Name == "Upgrades" || t.Name == "Construction HUD")
                 {
