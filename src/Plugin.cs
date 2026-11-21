@@ -50,6 +50,7 @@ namespace MoonXrStarter
         internal static BepInEx.Configuration.ConfigEntry<float> ManualMargin;
         internal static BepInEx.Configuration.ConfigEntry<float> CompassScale, CompassRaise, ToolbarScale, ToolbarLower;
         internal static BepInEx.Configuration.ConfigEntry<bool> HideHud, ThumbRestDpad, FullViewLoading, BuildMenuLaser;
+        internal static BepInEx.Configuration.ConfigEntry<float> ThumbRestHold;
         internal static BepInEx.Configuration.ConfigEntry<float> MapWidth, TeleportScale, ToolsScreenWidth, LoadingLogoSize, IntroLower, StudioIntroLogoSize, StudioIntroSpeed;
         internal static BepInEx.Configuration.ConfigEntry<string> HudScreens;
         internal static BepInEx.Configuration.ConfigEntry<string> HandHud, HudMode;
@@ -146,6 +147,9 @@ namespace MoonXrStarter
             TeleportScale = Config.Bind("VR UI", "Teleport Panel Size", 0f, "0 = the map's teleport list stays inside the map (normal). Above 0: shown as its own panel to the right of the map, this many times its normal size.");
             if (Mathf.Approximately(TeleportScale.Value, 1.6f)) TeleportScale.Value = 0f;   // old default
             ThumbRestDpad = Config.Bind("Motion Controls", "Thumb Rest D-pad", true, "While your right thumb rests on the right controller's thumb rest, the left stick works as the D-pad.");
+            ThumbRestHold = Config.Bind("Motion Controls", "Thumb Rest Hold Seconds", 2f, "How long your thumb has to rest on the thumb rest before the left stick becomes the D-pad, in seconds.");
+            var restVer = Config.Bind("Motion Controls", "Thumb Rest Version", 0, "Internal: used to update old thumb rest defaults. Leave alone.");
+            if (restVer.Value < 3) { ThumbRestHold.Value = 2f; restVer.Value = 3; }
             HideHud = Config.Bind("VR UI", "Hide HUD", false, "Old setting, replaced by HUD Mode (kept so older configs carry over).");
             HudMode = Config.Bind("VR UI", "HUD Mode", HideHud.Value ? "None" : "Full", new BepInEx.Configuration.ConfigDescription("Which HUD you see: Full (wrist HUD, tool belt and compass), Hand Only (just the wrist HUD) or None. Step through them in game with both grips + click the left stick (gamepad: LB + RB + click the left stick).", new BepInEx.Configuration.AcceptableValueList<string>("Full", "Hand Only", "None")));
             HudScreens = Config.Bind("VR UI", "HUD Screens", "Region scanner HUD, Equipment HUD - five slots, Save indicator HUD, Money popups", "Which of the game's screens count as the HUD for Hide HUD.");

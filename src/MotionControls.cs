@@ -234,8 +234,12 @@ namespace MoonXrStarter
                 {
                     _rTrigger = 0f;
                 }
-                // Right thumb on the thumb rest: the left stick becomes the D-pad (like Quest games).
-                if (Plugin.ThumbRestDpad.Value && XrPadSource.ThumbRest)
+                // Right thumb on the thumb rest: the left stick becomes the D-pad (like Quest games) -
+                // only once the thumb has rested there for a moment, so brushing it doesn't do it.
+                if (XrPadSource.ThumbRest) { if (_restSince < 0f) _restSince = Time.unscaledTime; }
+                else _restSince = -1f;
+                bool restHeld = _restSince >= 0f && Time.unscaledTime - _restSince >= Plugin.ThumbRestHold.Value;
+                if (Plugin.ThumbRestDpad.Value && restHeld)
                 {
                     var d = _lStick;
                     if (d.sqrMagnitude > 0.25f)
@@ -480,6 +484,7 @@ namespace MoonXrStarter
 
         internal static float RawRightTrigger;
         private static bool _radioToggleHeld;
+        private static float _restSince = -1f;
         private static bool _buildTrigHeld; private static int _buildTrigLogs;
         internal static void HandAimBegin() => BrushPre();
         internal static void HandAimEnd() => BrushPost();

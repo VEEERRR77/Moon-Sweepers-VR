@@ -451,9 +451,12 @@ namespace MoonXrStarter
                 {
                     // Close to you, so it isn't behind the garage wall when you're at the back of it;
                     // scaled down to look the same size as the upgrade matrix.
+                    // Pull the whole panel in towards your eyes (keeping its direction, so it stays as
+                    // high or low in your view as the other menus).
                     float gd = Mathf.Max(0.5f, Plugin.GarageMenuDistance.Value);
+                    float k = gd / Mathf.Max(0.1f, dist);
                     w = Plugin.ToolsScreenWidth.Value * gd / (dist + 0.5f);
-                    extra = fwd * (gd - dist);
+                    extra = (_smoothPos - eyeBase) * (k - 1f);
                 }
                 else if (t.Name == "Upgrades" || t.Name == "Construction HUD")
                 {
