@@ -189,7 +189,9 @@ namespace MoonXrStarter
             HideBrokenPink = Config.Bind("Comfort", "Hide Broken Pink Objects", true, "Hide objects whose material/shader failed in VR (they show up as bright pink boxes, e.g. at the character's feet on the main menu).");
             UiHideElements = Config.Bind("VR UI", "Hide Elements", "HUD shade", "Comma-separated names of UI pieces to hide in VR (e.g. screen borders). The log lists candidates.");
             if (string.IsNullOrWhiteSpace(UiHideElements.Value)) UiHideElements.Value = "HUD shade";   // the dark band around the HUD
-            UiLogElements = Config.Bind("VR UI", "Log Large Elements", true, "Write full-screen UI pieces and edge strips to the log, to find borders to hide.");
+            UiLogElements = Config.Bind("VR UI", "Log Large Elements", false, "Diagnostics: write full-screen UI pieces and edge strips to the log, to find borders to hide (slows down opening new menus).");
+            var logElVer = Config.Bind("VR UI", "Log Large Elements Version", 0, "Internal: used to update old defaults. Leave alone.");
+            if (logElVer.Value < 1) { UiLogElements.Value = false; logElVer.Value = 1; }
             AddComponent<XrStarterBehaviour>();
             AddComponent<UiToWorld>();
             AddComponent<HeadTracking>();
