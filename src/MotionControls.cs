@@ -86,7 +86,8 @@ namespace MoonXrStarter
                     // sweeper, get into vehicles, capsules...) also aim from the camera: point with
                     // the hand there too - but not while the garage menu is open or while you drive.
                     HookGuarded(h, "MoonCleaners.MoonGarageMenu", "IsOpen", false);
-                    HookGuarded(h, "MoonCleaners.MoonPrototypeEquipment", "Vehicle", true);
+                    // (The equipment system - push sweepers, vehicles - stays on the game's own aiming:
+                    // aiming it from the hand stopped the push sweeper prompt appearing at all.)
                 }
 
                 MenuFix.Install(h);
