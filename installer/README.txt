@@ -96,6 +96,11 @@ Controls (Quest / Touch motion controllers)
 The HUD: tool belt at the bottom of your view, compass at the top,
 dust / money / notices on your LEFT wrist.
 
+Steam Frame controllers: SteamVR picks their own layout automatically.
+A, B, X, Y, the D-pad and the bumpers work like a gamepad, View = Select,
+Menu = Start. The grips work as LB / RB, so the both-grips shortcuts work
+the same as on Quest.
+
 Controls (Xbox / PlayStation controller)
 ----------------------------------------
 - Hold LB + RB and press A ............... recenter the view

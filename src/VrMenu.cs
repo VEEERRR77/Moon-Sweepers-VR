@@ -96,6 +96,8 @@ namespace MoonXrStarter
             "Left stick up / down: held-tool height\n" +
             "X: laser on / off      Y: wrist radio\n" +
             "Click left stick: HUD (full / hand only / none)\n" +
+            "\n<b>Steam Frame</b>: A/B/X/Y, D-pad, bumpers as on a gamepad; View = Select, Menu = Start;\n" +
+            "grips work as LB / RB for the both-grips shortcuts\n" +
             "\n<b>Menus</b>: point the laser and press A (map, supply wall, upgrades)\n" +
             "or pull the right trigger (build menu, garage, chess, radio, this menu)";
 

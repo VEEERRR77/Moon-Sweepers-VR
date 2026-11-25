@@ -382,15 +382,17 @@ try {
     if (Test-Path $vrCfg) { Say 'Kept your existing VR settings (height, menu size etc).' }
     else { Copy-Item -Path (Join-Path $ModFiles 'BepInEx\config\claude.moonxrstarter.cfg') -Destination $cfgDir -Force }
 
-    # Quest controller layout (grips = LB/RB). UUVR copies its CopyToGame folder into the game on
-    # every launch, so the layout goes there; also update the game's copy if it already exists.
-    $binding = Join-Path $ModFiles 'SteamVR\bindings_oculus_touch.json'
+    # Controller layouts: Quest (grips = LB/RB, thumb-rest D-pad) and Steam Frame (its own buttons),
+    # plus the action list that tells SteamVR which layout file goes with which controller.
+    # UUVR copies its CopyToGame folder into the game on every launch, so the files go there;
+    # also update the game's copy if it already exists.
+    $bindings = Get-ChildItem -LiteralPath (Join-Path $ModFiles 'SteamVR') -Filter '*.json' -File
     $dataDir = Join-Path $game ([IO.Path]::GetFileNameWithoutExtension($ExeName) + '_Data')
     foreach ($d in (Join-Path $game 'BepInEx\patchers\uuvr-il2cpp-legacy\CopyToGame\Data\StreamingAssets\SteamVR'),
                    (Join-Path $dataDir 'StreamingAssets\SteamVR')) {
         if ($d -like '*CopyToGame*' -or (Test-Path $d)) {
             New-Item -ItemType Directory -Force -Path $d | Out-Null
-            Copy-Item -LiteralPath $binding -Destination $d -Force
+            foreach ($b in $bindings) { Copy-Item -LiteralPath $b.FullName -Destination $d -Force }
         }
     }
 

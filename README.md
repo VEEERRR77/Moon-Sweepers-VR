@@ -103,6 +103,10 @@ In the **garage menu**, point the laser at a card, row, tab or button and pull t
 
 In the **build menu**, point at a card and pull the **right trigger** to choose it. While placing, the piece (or the end of a conveyor) follows where your right hand points; confirm as normal.
 
+**Steam Frame controllers**
+
+The Steam Frame controllers get their own layout (picked automatically by SteamVR): A, B, X, Y, the D-pad and the bumpers work like a gamepad, **View** is Select and **Menu** is Start. The grips also work as LB / RB, so all the *both grips +* shortcuts above work the same. There's no thumb-rest D-pad on the Frame (it has a real one).
+
 **Xbox / PlayStation controller**
 
 | Input | Does |

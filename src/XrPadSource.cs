@@ -76,7 +76,8 @@ namespace MoonXrStarter
             _lt = Handle("/actions/Xbox/in/LT"); _rt = Handle("/actions/Xbox/in/RT");
             _ls = Handle("/actions/Xbox/in/StickLeft"); _rs = Handle("/actions/Xbox/in/StickRight");
             _lsc = Handle("/actions/Xbox/in/StickLeftClick"); _rsc = Handle("/actions/Xbox/in/StickRightClick");
-            _rest = Handle("/actions/Xbox/in/DUp");   // bound to "right thumb rest touched" in our binding file
+            _rest = Handle("/actions/Xbox/in/DUp");   // Quest: bound to "right thumb rest touched"; Steam Frame: D-pad up
+            _dDown = Handle("/actions/Xbox/in/DDown"); _dLeft = Handle("/actions/Xbox/in/DLeft"); _dRight = Handle("/actions/Xbox/in/DRight");
             if (_set == 0) throw new Exception("SteamVR action set not available");
 
             _active = (byte*)Marshal.AllocHGlobal(32);
@@ -88,7 +89,12 @@ namespace MoonXrStarter
             Plugin.L.LogMessage("Motion: reading Quest controllers from SteamVR");
         }
 
-        private static ulong _rest;
+        private static ulong _rest, _dDown, _dLeft, _dRight;
+        /// <summary>True when the controllers have a real D-pad bound (Steam Frame), rather than the
+        /// Quest thumb-rest trick. Worked out from SteamVR: the extra D-pad directions are only
+        /// bound in the Steam Frame binding file.</summary>
+        internal static bool RealDpad;
+        private static bool _loggedFrame;
         /// <summary>True while the right thumb is resting on the right controller's thumb rest.</summary>
         internal static bool ThumbRest;
         private static bool _loggedRest, _loggedRestBound, _loggedRestUnbound;
@@ -142,6 +148,23 @@ namespace MoonXrStarter
                 bool before = _anyActive; _anyActive = false;
                 ThumbRest = Digital(_rest);
                 bool restBound = _anyActive; _anyActive |= before;
+                // Steam Frame (or any controller with a real D-pad bound): the four D-pad actions
+                // are the D-pad, and there's no thumb-rest trick.
+                before = _anyActive; _anyActive = false;
+                bool dDown = Digital(_dDown), dLeft = Digital(_dLeft), dRight = Digital(_dRight);
+                bool dpadBound = _anyActive; _anyActive |= before;
+                if (dpadBound)
+                {
+                    if (!RealDpad || !_loggedFrame) { _loggedFrame = true; Plugin.L.LogMessage("Motion: controllers with a real D-pad (Steam Frame layout) - D-pad read directly, thumb-rest D-pad off"); }
+                    RealDpad = true;
+                    if (ThumbRest) buttons |= 1u << 0;
+                    if (dDown) buttons |= 1u << 1;
+                    if (dLeft) buttons |= 1u << 2;
+                    if (dRight) buttons |= 1u << 3;
+                    ThumbRest = false;
+                    restBound = true;   // (don't warn about the thumb rest)
+                }
+                else RealDpad = false;
                 if (restBound && !_loggedRestBound) { _loggedRestBound = true; Plugin.L.LogInfo("Motion: thumb rest is bound in SteamVR"); }
                 if (ThumbRest && !_loggedRest) { _loggedRest = true; Plugin.L.LogInfo("Motion: right thumb rest touched - left stick is now the D-pad"); }
                 if (!restBound && !_loggedRestUnbound && _frames == 600) { _loggedRestUnbound = true; Plugin.L.LogWarning("Motion: thumb rest is NOT bound in SteamVR (new binding file not loaded yet?)"); }
